@@ -1,0 +1,34 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Neon Idle Clicker</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+    <section class="game-area">
+        <div class="hud">
+            <div class="currency-label">Energy Balance</div>
+            <div class="balance-container" id="balance-display">0</div>
+            <div style="margin-top: 10px; color: #666; font-size: 0.9rem;">
+                <span id="cps-display">0</span> / sec
+            </div>
+        </div>
+
+        <div class="core-container">
+            <button class="click-btn" id="main-btn"></button>
+        </div>
+    </section>
+
+    <aside class="sidebar">
+        <div class="shop-header">UPGRADES</div>
+        
+        <!-- Upgrades Container -->
+        <div id="upgrades-list"></div>
+    </aside>
+
+    <script src="script.js"></script>
+</body>
+</html>
