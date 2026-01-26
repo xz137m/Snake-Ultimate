@@ -32,12 +32,13 @@ let audioCtx;
 
 // إعدادات الشبكة
 const GRID_SIZE = 20;
-const TILE_COUNT_X = canvas.width / GRID_SIZE;
-const TILE_COUNT_Y = canvas.height / GRID_SIZE;
+// حجم العالم (متغير حسب المستوى)
+let TILE_COUNT_X = 20;
+let TILE_COUNT_Y = 20;
 
 // حدود التطويرات
 const UPGRADE_LIMITS = {
-    foodCount: TILE_COUNT_X * TILE_COUNT_Y,
+    foodCount: 100000, // حد كبير جداً لأن العالم يتوسع
     scoreMult: 10000,
     doublePoints: 10000,
     xpMult: 10000,
@@ -87,7 +88,10 @@ const FRUIT_TYPES = [
     { name: 'Plasma Berry', nameAr: 'توت البلازما', color: 'rgb(255, 0, 100)', glow: 'rgb(255, 100, 150)', points: 50000, gold: 5000, xp: 5000, growth: 20, reqLevel: 25 },
     { name: 'Void Fruit', nameAr: 'فاكهة الفراغ', color: 'rgb(50, 0, 100)', glow: 'rgb(100, 50, 200)', points: 1e6, gold: 1e5, xp: 50000, growth: 30, reqLevel: 40 },
     { name: 'Star Fragment', nameAr: 'شظية نجم', color: 'rgb(255, 255, 255)', glow: 'rgb(200, 200, 255)', points: 1e9, gold: 1e8, xp: 1e6, growth: 50, reqLevel: 60 },
-    { name: 'Singularity', nameAr: 'تفرد', color: 'rgb(0, 0, 0)', glow: 'rgb(50, 50, 50)', points: 1e12, gold: 1e11, xp: 1e9, growth: 100, reqLevel: 100 }
+    { name: 'Singularity', nameAr: 'تفرد', color: 'rgb(0, 0, 0)', glow: 'rgb(50, 50, 50)', points: 1e12, gold: 1e11, xp: 1e9, growth: 100, reqLevel: 100 },
+    { name: 'Quantum Apple', nameAr: 'تفاحة كمية', color: 'rgb(0, 255, 100)', glow: 'rgb(0, 255, 150)', points: 1e15, gold: 1e14, xp: 1e12, growth: 150, reqLevel: 150 },
+    { name: 'Time Orb', nameAr: 'كرة الزمن', color: 'rgb(255, 215, 0)', glow: 'rgb(255, 255, 200)', points: 1e18, gold: 1e17, xp: 1e15, growth: 200, reqLevel: 200 },
+    { name: 'Reality Glitch', nameAr: 'خلل واقعي', color: 'rgb(255, 0, 255)', glow: 'rgb(255, 100, 255)', points: 1e21, gold: 1e20, xp: 1e18, growth: 300, reqLevel: 300 }
 ];
 
 const PRESTIGE_COLORS = [
@@ -101,7 +105,10 @@ const PRESTIGE_COLORS = [
     { name: 'Amethyst', nameAr: 'جمشت', head: 'rgb(153, 50, 204)', body: 'rgb(138, 43, 226)', reqLevel: 25 },
     { name: 'Magma', nameAr: 'حمم', head: 'rgb(255, 69, 0)', body: 'rgb(139, 0, 0)', reqLevel: 40 },
     { name: 'Cyber Silver', nameAr: 'فضي سايبر', head: 'rgb(192, 192, 192)', body: 'rgb(128, 128, 128)', reqLevel: 60 },
-    { name: 'Cosmic Void', nameAr: 'فراغ كوني', head: 'rgb(20, 20, 20)', body: 'rgb(50, 50, 50)', reqLevel: 100 }
+    { name: 'Cosmic Void', nameAr: 'فراغ كوني', head: 'rgb(20, 20, 20)', body: 'rgb(50, 50, 50)', reqLevel: 100 },
+    { name: 'Quantum Ghost', nameAr: 'شبح كمي', head: 'rgb(0, 255, 100)', body: 'rgb(0, 200, 100)', reqLevel: 150 },
+    { name: 'Time Weaver', nameAr: 'حائك الزمن', head: 'rgb(255, 215, 0)', body: 'rgb(200, 180, 50)', reqLevel: 200 },
+    { name: 'Reality Breaker', nameAr: 'محطم الواقع', head: 'rgb(255, 0, 255)', body: 'rgb(200, 0, 200)', reqLevel: 300 }
 ];
 
 // حالة اللعبة
@@ -122,6 +129,11 @@ let soundEnabled = localStorage.getItem('snakeSound') !== 'false';
 let particlesEnabled = localStorage.getItem('snakeParticles') !== 'false';
 let showEatRange = localStorage.getItem('snakeShowRange') !== 'false';
 let currentLanguage = localStorage.getItem('snakeLanguage') || 'en';
+let camera = { x: 0, y: 0 }; // متغير الكاميرا
+
+// تحديث حجم العالم بناءً على المستوى المحفوظ
+TILE_COUNT_X = 20 + playerLevel;
+TILE_COUNT_Y = 20 + playerLevel;
 
 // ضمان وجود القيم الافتراضية للتطويرات
 if (typeof upgrades.foodCount === 'undefined') upgrades.foodCount = 0;
@@ -291,7 +303,7 @@ function formatNumber(num) {
     const scale = Math.pow(10, tier * 3);
     const scaled = num / scale;
     
-    return scaled.toFixed(2) + suffix;
+    return scaled.toFixed(2) + (suffix ? " " + suffix : "");
 }
 
 // دالة حساب سقف المستوى الحالي
@@ -403,7 +415,8 @@ function setLanguage(lang) {
     
     // تحديث اتجاه الصفحة
     document.documentElement.lang = lang;
-    // document.documentElement.dir = lang === 'ar' ? 'rtl' : 'ltr'; // يمكن تفعيلها إذا أردت قلب التصميم
+    document.documentElement.dir = lang === 'ar' ? 'rtl' : 'ltr';
+    // تم إزالة تغيير الاتجاه (dir) للحفاظ على تنسيق الأرقام والقوائم كما طلبت
 
     updateTexts();
 }
@@ -447,6 +460,8 @@ function resetGameProgress() {
 
 function initGame() {
     snake = [{ x: 10, y: 10 }];
+    // وضع الثعبان في منتصف العالم الكبير
+    snake = [{ x: Math.floor(TILE_COUNT_X / 2), y: Math.floor(TILE_COUNT_Y / 2) }];
     particles = [];
     foods = [];
     velocity = { x: 1, y: 0 };
@@ -623,6 +638,8 @@ function updateSnake() {
             if (currentXp >= xpNeeded) {
                 currentXp -= xpNeeded;
                 playerLevel++;
+                TILE_COUNT_X = 20 + playerLevel; // توسيع العالم
+                TILE_COUNT_Y = 20 + playerLevel;
                 playSound('eat'); // صوت عند ارتفاع المستوى
             }
         }
@@ -733,26 +750,62 @@ function updateParticles() {
     }
 }
 
+// دالة تحديث الكاميرا لتتبع رأس الثعبان
+function updateCamera() {
+    if (snake.length === 0) return;
+    
+    const head = snake[0];
+    // حساب الموقع المستهدف للكاميرا (جعل الرأس في المنتصف)
+    const targetX = head.x * GRID_SIZE - canvas.width / 2 + GRID_SIZE / 2;
+    const targetY = head.y * GRID_SIZE - canvas.height / 2 + GRID_SIZE / 2;
+    
+    camera.x = targetX;
+    camera.y = targetY;
+}
+
 function draw() {
     // الخلفية
+    // 1. رسم الخلفية (ثابتة بالنسبة للشاشة)
     ctx.fillStyle = COLORS.BACKGROUND;
     ctx.fillRect(0, 0, canvas.width, canvas.height);
 
     // الشبكة
+    // تحديث الكاميرا قبل الرسم
+    updateCamera();
+
+    ctx.save(); // حفظ حالة الرسم الحالية
+    // تحريك العالم بناءً على موقع الكاميرا
+    ctx.translate(-camera.x, -camera.y);
+
+    // 2. رسم الشبكة (حول الكاميرا فقط للأداء)
     ctx.strokeStyle = COLORS.GRID;
     ctx.lineWidth = 0.5;
     ctx.beginPath();
-    for (let x = 0; x <= canvas.width; x += GRID_SIZE) {
-        ctx.moveTo(x, 0);
-        ctx.lineTo(x, canvas.height);
+    // حساب حدود الرسم الظاهرة فقط
+    const startX = Math.floor(camera.x / GRID_SIZE) * GRID_SIZE - GRID_SIZE;
+    const endX = startX + canvas.width + GRID_SIZE * 2;
+    const startY = Math.floor(camera.y / GRID_SIZE) * GRID_SIZE - GRID_SIZE;
+    const endY = startY + canvas.height + GRID_SIZE * 2;
+
+    // رسم الخطوط العمودية
+    for (let x = startX; x <= endX; x += GRID_SIZE) {
+        ctx.moveTo(x, startY);
+        ctx.lineTo(x, endY);
     }
-    for (let y = 0; y <= canvas.height; y += GRID_SIZE) {
-        ctx.moveTo(0, y);
-        ctx.lineTo(canvas.width, y);
+    // رسم الخطوط الأفقية
+    for (let y = startY; y <= endY; y += GRID_SIZE) {
+        ctx.moveTo(startX, y);
+        ctx.lineTo(endX, y);
     }
     ctx.stroke();
+    
+    // رسم حدود العالم (إطار أحمر ليعرف اللاعب حدود الخريطة)
+    ctx.strokeStyle = 'rgba(255, 0, 0, 0.5)';
+    ctx.lineWidth = 5;
+    ctx.strokeRect(0, 0, TILE_COUNT_X * GRID_SIZE, TILE_COUNT_Y * GRID_SIZE);
 
     // رسم مدى الأكل (Magnet Range Indicator)
+    // 3. رسم مدى الأكل (Magnet Range Indicator)
     if (showEatRange && upgrades.eatRange > 0 && snake.length > 0) {
         const head = snake[0];
         const range = upgrades.eatRange;
@@ -782,6 +835,7 @@ function draw() {
     }
 
     // الطعام
+    // 4. رسم الطعام
     foods.forEach(f => {
         const type = FRUIT_TYPES[f.type];
         const pulse = Math.sin(Date.now() / 200) * 3;
@@ -800,6 +854,7 @@ function draw() {
     });
 
     // رسم الجسيمات
+    // 5. رسم الجسيمات
     particles.forEach(p => {
         ctx.globalAlpha = p.life;
         ctx.fillStyle = p.color;
@@ -810,6 +865,7 @@ function draw() {
     ctx.globalAlpha = 1.0;
 
     // الثعبان
+    // 6. رسم الثعبان
     const unlockedColors = PRESTIGE_COLORS.filter(c => playerLevel >= c.reqLevel);
     const currentColors = unlockedColors[prestigeLevel % unlockedColors.length];
     snake.forEach((part, index) => {
@@ -846,6 +902,8 @@ function draw() {
             ctx.fillRect(x + 1, y + 1, GRID_SIZE - 2, GRID_SIZE - 2);
         }
     });
+
+    ctx.restore(); // استعادة حالة الرسم (لإلغاء تأثير الكاميرا على العناصر الثابتة)
 
     // رسم نص التوقف
     if (isPaused) {
@@ -994,7 +1052,7 @@ function renderGuideItems() {
         div.innerHTML = `
             <h3 style="color: ${isUnlocked ? '#00ff00' : '#ff3366'}">${t.maxLevel} ${tier.limit}</h3>
             <p>${t.req}</p>
-            <p style="color: #ffd700">${formatNumber(tier.req)} Score</p>
+            <p style="color: #ffd700">${formatNumber(tier.req)} ${t.score.replace(':', '')}</p>
             <p>${isUnlocked ? t.unlocked : t.locked}</p>
         `;
         container.appendChild(div);
