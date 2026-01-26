@@ -20,6 +20,8 @@ const closeSettingsBtn = document.getElementById('closeSettingsBtn');
 const toggleSoundBtn = document.getElementById('toggleSoundBtn');
 const toggleParticlesBtn = document.getElementById('toggleParticlesBtn');
 const toggleRangeBtn = document.getElementById('toggleRangeBtn');
+const langEnBtn = document.getElementById('langEnBtn');
+const langArBtn = document.getElementById('langArBtn');
 const progressFill = document.getElementById('progressFill');
 const progressText = document.getElementById('progressText');
 const xpFill = document.getElementById('xpFill');
@@ -119,6 +121,7 @@ let upgrades = JSON.parse(localStorage.getItem('snakeUpgrades')) || {};
 let soundEnabled = localStorage.getItem('snakeSound') !== 'false';
 let particlesEnabled = localStorage.getItem('snakeParticles') !== 'false';
 let showEatRange = localStorage.getItem('snakeShowRange') !== 'false';
+let currentLanguage = localStorage.getItem('snakeLanguage') || 'en';
 
 // ضمان وجود القيم الافتراضية للتطويرات
 if (typeof upgrades.foodCount === 'undefined') upgrades.foodCount = 0;
@@ -133,7 +136,125 @@ let gameLoop;
 let renderLoopId; // معرف حلقة الرسم
 let isPaused = false;
 let isGameOver = false;
-let speed = 80;
+let speed = 110; // Slower speed (was 80)
+
+// قاموس الترجمة
+const TRANSLATIONS = {
+    en: {
+        score: "Score:",
+        level: "Level:",
+        gold: "Gold:",
+        highScore: "High Score:",
+        play: "▶ Play",
+        shop: "🛒 Shop",
+        guide: "📜 Guide",
+        settings: "⚙️ Settings",
+        reset: "🗑️ Reset Data",
+        gameOver: "Game Over!",
+        finalScore: "Final Score:",
+        goldEarned: "Gold Earned:",
+        playAgain: "🔄 Play Again",
+        mainMenu: "🏠 Main Menu",
+        shopTitle: "🛒 Upgrade Shop",
+        guideTitle: "📜 Game Guide",
+        settingsTitle: "⚙️ Settings",
+        balance: "Balance:",
+        close: "❌ Close",
+        soundOn: "🔊 Sound: ON",
+        soundOff: "🔊 Sound: OFF",
+        particlesOn: "✨ Particles: ON",
+        particlesOff: "✨ Particles: OFF",
+        rangeOn: "📏 Show Range: ON",
+        rangeOff: "📏 Show Range: OFF",
+        nextEvo: "Next Evolution (50 Length)",
+        moreFood: "🍎 More Food",
+        moreFoodDesc: "Increase max food on screen (+1)",
+        scoreBonus: "💎 Score Bonus",
+        scoreBonusDesc: "Increase base Score & Gold (+1%) [Max 300%]",
+        globalMult: "⚡ Global Multiplier",
+        globalMultDesc: "Multiply total Score & Gold (+1%) [Max 300%]",
+        xpBonus: "🧠 XP Bonus",
+        xpBonusDesc: "Increase XP gain (+1%) [Max 300%]",
+        growthSurge: "💪 Growth Surge",
+        growthSurgeDesc: "Gain extra length per fruit (+1 unit) [Max 10]",
+        magnetRange: "🧲 Magnet Range",
+        magnetRangeDesc: "Eat food from a distance (+1 block) [Max 3]",
+        luckyCharm: "🍀 Lucky Charm",
+        luckyCharmDesc: "Increase chance of Rare Fruits [Max 10]",
+        buy: "Buy",
+        max: "MAX",
+        locked: "🔒 LOCKED",
+        unlocked: "✅ UNLOCKED",
+        req: "Requirement:",
+        currentLevel: "Current Level:",
+        levelEffect: "Each level doubles all Score and Gold (x2)",
+        currentMult: "Current Multiplier:",
+        fruitsSection: "🍎 Fruits (Current Values)",
+        snakesSection: "🐍 Snakes (Evolution)",
+        capsSection: "🔒 Level Caps (Requirements)",
+        playerLevelSection: "⭐ Player Level (XP)",
+        confirmReset: "Are you sure? This will wipe all your progress (Gold, Levels, Upgrades) forever!",
+        paused: "⏸️ PAUSED",
+        instructions: "Use WASD / Arrows to move<br>SPACE to Pause<br>Collect food to grow & earn gold"
+    },
+    ar: {
+        score: "النقاط:",
+        level: "المستوى:",
+        gold: "الذهب:",
+        highScore: "أعلى نقاط:",
+        play: "▶ ابدأ اللعب",
+        shop: "🛒 المتجر",
+        guide: "📜 الدليل",
+        settings: "⚙️ الإعدادات",
+        reset: "🗑️ إعادة تعيين",
+        gameOver: "خسرت!",
+        finalScore: "النقاط النهائية:",
+        goldEarned: "الذهب المكتسب:",
+        playAgain: "🔄 العب مجدداً",
+        mainMenu: "🏠 القائمة الرئيسية",
+        shopTitle: "🛒 متجر التطويرات",
+        guideTitle: "📜 دليل اللعبة",
+        settingsTitle: "⚙️ الإعدادات",
+        balance: "الرصيد:",
+        close: "❌ إغلاق",
+        soundOn: "🔊 الصوت: مفعل",
+        soundOff: "🔊 الصوت: معطل",
+        particlesOn: "✨ المؤثرات: مفعل",
+        particlesOff: "✨ المؤثرات: معطل",
+        rangeOn: "📏 المدى: مفعل",
+        rangeOff: "📏 المدى: معطل",
+        nextEvo: "التطور التالي (طول 50)",
+        moreFood: "🍎 زيادة التفاح",
+        moreFoodDesc: "زيادة عدد التفاح في الشاشة (+1)",
+        scoreBonus: "💎 زيادة النقاط",
+        scoreBonusDesc: "زيادة النقاط والذهب الأساسي (+1%) [حد 300%]",
+        globalMult: "⚡ مضاعف شامل",
+        globalMultDesc: "مضاعفة مجموع النقاط والذهب (+1%) [حد 300%]",
+        xpBonus: "🧠 زيادة الخبرة",
+        xpBonusDesc: "زيادة كسب الخبرة (+1%) [حد 300%]",
+        growthSurge: "💪 طفرة النمو",
+        growthSurgeDesc: "زيادة الطول لكل فاكهة (+1 وحدة) [حد 10]",
+        magnetRange: "🧲 مدى المغناطيس",
+        magnetRangeDesc: "أكل الطعام عن بعد (+1 مربع) [حد 3]",
+        luckyCharm: "🍀 الحظ السعيد",
+        luckyCharmDesc: "زيادة فرصة الفواكه النادرة [حد 10]",
+        buy: "شراء",
+        max: "الحد الأقصى",
+        locked: "🔒 مغلق",
+        unlocked: "✅ مفتوح",
+        req: "المتطلبات:",
+        currentLevel: "المستوى الحالي:",
+        levelEffect: "كل مستوى يضاعف النقاط والذهب (x2)",
+        currentMult: "المضاعف الحالي:",
+        fruitsSection: "🍎 الفواكه (القيم الحالية)",
+        snakesSection: "🐍 الثعابين (التطور)",
+        capsSection: "🔒 حدود المستوى (المتطلبات)",
+        playerLevelSection: "⭐ مستوى اللاعب (XP)",
+        confirmReset: "هل أنت متأكد؟ سيتم مسح كل تقدمك (الذهب، المستوى، التطويرات) للأبد!",
+        paused: "⏸️ موقوف",
+        instructions: "استخدم WASD أو الأسهم للتحرك<br>SPACE للإيقاف<br>اجمع الطعام لتكبر وتكسب الذهب"
+    }
+};
 
 // دالة تنسيق الأرقام الكبيرة
 function formatNumber(num) {
@@ -188,6 +309,8 @@ closeSettingsBtn.addEventListener('click', closeSettings);
 toggleSoundBtn.addEventListener('click', toggleSound);
 toggleParticlesBtn.addEventListener('click', toggleParticles);
 if(toggleRangeBtn) toggleRangeBtn.addEventListener('click', toggleRange);
+langEnBtn.addEventListener('click', () => setLanguage('en'));
+langArBtn.addEventListener('click', () => setLanguage('ar'));
 document.addEventListener('keydown', handleKeyPress);
 
 // دعم اللمس (Touch Support)
@@ -258,8 +381,49 @@ function createParticles(x, y, color) {
     }
 }
 
+function setLanguage(lang) {
+    currentLanguage = lang;
+    localStorage.setItem('snakeLanguage', lang);
+    
+    // تحديث اتجاه الصفحة
+    document.documentElement.lang = lang;
+    // document.documentElement.dir = lang === 'ar' ? 'rtl' : 'ltr'; // يمكن تفعيلها إذا أردت قلب التصميم
+
+    updateTexts();
+}
+
+function updateTexts() {
+    const t = TRANSLATIONS[currentLanguage];
+    
+    document.getElementById('lblScore').innerText = t.score;
+    document.getElementById('lblLevel').innerText = t.level;
+    document.getElementById('lblGold').innerText = t.gold;
+    document.getElementById('lblHighScore').innerText = t.highScore;
+    
+    document.getElementById('startBtn').innerText = t.play;
+    document.getElementById('shopBtn').innerText = t.shop;
+    document.getElementById('guideBtn').innerText = t.guide;
+    document.getElementById('settingsBtn').innerText = t.settings;
+    document.getElementById('resetBtn').innerText = t.reset;
+    document.getElementById('menuInstructions').innerHTML = t.instructions;
+    
+    document.getElementById('shopTitle').innerText = t.shopTitle;
+    document.getElementById('lblBalance').innerText = t.balance;
+    document.getElementById('closeShopBtn').innerText = t.close;
+    
+    document.getElementById('guideTitle').innerText = t.guideTitle;
+    document.getElementById('closeGuideBtn').innerText = t.close;
+    
+    document.getElementById('settingsTitle').innerText = t.settingsTitle;
+    document.getElementById('closeSettingsBtn').innerText = t.close;
+    
+    document.getElementById('lblProgress').innerText = t.nextEvo;
+    
+    updateSettingsButtons();
+}
+
 function resetGameProgress() {
-    if(confirm("Are you sure? This will wipe all your progress (Gold, Levels, Upgrades) forever!")) {
+    if(confirm(TRANSLATIONS[currentLanguage].confirmReset)) {
         localStorage.clear();
         location.reload();
     }
@@ -274,7 +438,7 @@ function initGame() {
     score = 0;
     growthBuffer = 0;
     prestigeLevel = 0;
-    speed = 80;
+    speed = 110;
     isPaused = false;
     isGameOver = false;
     
@@ -364,12 +528,13 @@ function gameOver() {
         highScoreElement.innerText = highScore;
     }
 
+    const t = TRANSLATIONS[currentLanguage];
     menuOverlay.innerHTML = `
-        <h1 style="color: #ff3366">Game Over!</h1>
-        <p>Final Score: ${formatNumber(score)}</p>
-        <p style="color: #ffd700">Gold Earned: ${formatNumber(coins)}</p>
-        <button onclick="startGame()">🔄 Play Again</button>
-        <button onclick="location.reload()">🏠 Main Menu</button>
+        <h1 style="color: #ff3366">${t.gameOver}</h1>
+        <p>${t.finalScore} ${formatNumber(score)}</p>
+        <p style="color: #ffd700">${t.goldEarned} ${formatNumber(coins)}</p>
+        <button onclick="startGame()">${t.playAgain}</button>
+        <button onclick="location.reload()">${t.mainMenu}</button>
     `;
     menuOverlay.classList.remove('hidden');
 }
@@ -524,9 +689,10 @@ function toggleRange() {
 }
 
 function updateSettingsButtons() {
-    toggleSoundBtn.innerText = `🔊 Sound: ${soundEnabled ? 'ON' : 'OFF'}`;
-    toggleParticlesBtn.innerText = `✨ Particles: ${particlesEnabled ? 'ON' : 'OFF'}`;
-    if(toggleRangeBtn) toggleRangeBtn.innerText = `📏 Show Range: ${showEatRange ? 'ON' : 'OFF'}`;
+    const t = TRANSLATIONS[currentLanguage];
+    toggleSoundBtn.innerText = soundEnabled ? t.soundOn : t.soundOff;
+    toggleParticlesBtn.innerText = particlesEnabled ? t.particlesOn : t.particlesOff;
+    if(toggleRangeBtn) toggleRangeBtn.innerText = showEatRange ? t.rangeOn : t.rangeOff;
 }
 
 // حلقة الرسم وتحديث الجسيمات (تعمل بـ 60 إطار)
@@ -672,7 +838,7 @@ function draw() {
         ctx.fillStyle = "white";
         ctx.font = "bold 40px Arial";
         ctx.textAlign = "center";
-        ctx.fillText("⏸️ PAUSED", canvas.width / 2, canvas.height / 2);
+        ctx.fillText(TRANSLATIONS[currentLanguage].paused, canvas.width / 2, canvas.height / 2);
     }
 }
 
@@ -774,6 +940,7 @@ function closeGuide() {
 function renderGuideItems() {
     const container = document.getElementById('guide-items');
     container.innerHTML = '';
+    const t = TRANSLATIONS[currentLanguage];
     
     let prestigeMult = Math.pow(2, prestigeLevel);
     let shopMult = (1 + Math.min(upgrades.doublePoints, 300) * 0.01);
@@ -783,7 +950,7 @@ function renderGuideItems() {
     // قسم المستوى (شرح الفائدة)
     const levelHeader = document.createElement('h2');
     levelHeader.className = 'guide-section-title';
-    levelHeader.innerText = '⭐ Player Level (XP)';
+    levelHeader.innerText = t.playerLevelSection;
     container.appendChild(levelHeader);
 
     const levelDiv = document.createElement('div');
@@ -791,16 +958,16 @@ function renderGuideItems() {
     levelDiv.style.borderColor = '#00ffff';
     levelDiv.style.gridColumn = '1 / -1'; // عرض كامل
     levelDiv.innerHTML = `
-        <h3 style="color: #00ffff">Current Level: ${playerLevel}</h3>
-        <p>Each level doubles all Score and Gold (x2)</p>
-        <p>Current Multiplier: <span style="color: #ffd700">x${formatNumber(levelMult)}</span>!</p>
+        <h3 style="color: #00ffff">${t.currentLevel} ${playerLevel}</h3>
+        <p>${t.levelEffect}</p>
+        <p>${t.currentMult} <span style="color: #ffd700">x${formatNumber(levelMult)}</span>!</p>
     `;
     container.appendChild(levelDiv);
 
     // قسم حدود المستوى
     const capHeader = document.createElement('h2');
     capHeader.className = 'guide-section-title';
-    capHeader.innerText = '🔒 Level Caps (Requirements)';
+    capHeader.innerText = t.capsSection;
     container.appendChild(capHeader);
 
     LEVEL_CAPS.forEach(tier => {
@@ -810,9 +977,9 @@ function renderGuideItems() {
         div.style.borderColor = isUnlocked ? '#00ff00' : '#ff3366';
         div.innerHTML = `
             <h3 style="color: ${isUnlocked ? '#00ff00' : '#ff3366'}">Max Level: ${tier.limit}</h3>
-            <p>Requirement:</p>
+            <p>${t.req}</p>
             <p style="color: #ffd700">${formatNumber(tier.req)} Score</p>
-            <p>${isUnlocked ? '✅ UNLOCKED' : '🔒 LOCKED'}</p>
+            <p>${isUnlocked ? t.unlocked : t.locked}</p>
         `;
         container.appendChild(div);
     });
@@ -820,7 +987,7 @@ function renderGuideItems() {
     // قسم الفواكه
     const fruitHeader = document.createElement('h2');
     fruitHeader.className = 'guide-section-title';
-    fruitHeader.innerText = '🍎 Fruits (Current Values)';
+    fruitHeader.innerText = t.fruitsSection;
     container.appendChild(fruitHeader);
 
     FRUIT_TYPES.forEach(fruit => {
@@ -837,8 +1004,8 @@ function renderGuideItems() {
         div.style.borderColor = isUnlocked ? fruit.color : '#555';
         div.style.opacity = isUnlocked ? '1' : '0.5';
         div.innerHTML = `
-            <h3 style="color: ${fruit.color}">${fruit.name} ${!isUnlocked ? '🔒' : ''}</h3>
-            ${!isUnlocked ? `<p style="color: #ff3366">Unlocks at Level ${fruit.reqLevel}</p>` : ''}
+            <h3 style="color: ${fruit.color}">${fruit.name} ${!isUnlocked ? t.locked : ''}</h3>
+            ${!isUnlocked ? `<p style="color: #ff3366">Level ${fruit.reqLevel}</p>` : ''}
             <div style="width: 20px; height: 20px; background: ${fruit.color}; border-radius: 50%; margin: 10px auto; box-shadow: 0 0 10px ${fruit.glow}"></div>
             <p>Growth: +${fruit.growth}</p>
             <p>Score: ${formatNumber(Math.floor(currentPoints))}</p>
@@ -851,7 +1018,7 @@ function renderGuideItems() {
     // قسم الثعابين
     const snakeHeader = document.createElement('h2');
     snakeHeader.className = 'guide-section-title';
-    snakeHeader.innerText = '🐍 Snakes (Evolution)';
+    snakeHeader.innerText = t.snakesSection;
     container.appendChild(snakeHeader);
 
     PRESTIGE_COLORS.forEach((snakeType, index) => {
@@ -862,8 +1029,8 @@ function renderGuideItems() {
         div.style.borderColor = isUnlocked ? snakeType.head : '#555';
         div.style.opacity = isUnlocked ? '1' : '0.5';
         div.innerHTML = `
-            <h3 style="color: ${snakeType.head}">${snakeType.name} ${!isUnlocked ? '🔒' : ''}</h3>
-            ${!isUnlocked ? `<p style="color: #ff3366">Unlocks at Level ${snakeType.reqLevel}</p>` : ''}
+            <h3 style="color: ${snakeType.head}">${snakeType.name} ${!isUnlocked ? t.locked : ''}</h3>
+            ${!isUnlocked ? `<p style="color: #ff3366">Level ${snakeType.reqLevel}</p>` : ''}
             <div style="width: 40px; height: 40px; background: ${snakeType.body}; border: 4px solid ${snakeType.head}; margin: 10px auto;"></div>
             <p>Multiplier: x${mult}</p>
             <p>XP Multiplier: x${mult}</p>
@@ -891,6 +1058,7 @@ function getUpgradeCost(baseCost, currentLevel, id) {
 function renderShopItems() {
     const container = document.getElementById('shop-items');
     container.innerHTML = '';
+    const t = TRANSLATIONS[currentLanguage];
     
     // تحديث عرض الرصيد في المتجر
     document.getElementById('shopCoins').innerText = formatNumber(coins);
@@ -899,8 +1067,8 @@ function renderShopItems() {
         {
             id: 'foodCount',
             baseCost: 10,
-            name: '🍎 More Food',
-            desc: 'Increase max food on screen (+1)',
+            name: t.moreFood,
+            desc: t.moreFoodDesc,
             level: upgrades.foodCount,
             maxLevel: UPGRADE_LIMITS.foodCount,
             cost: getUpgradeCost(10, upgrades.foodCount, 'foodCount')
@@ -908,8 +1076,8 @@ function renderShopItems() {
         {
             id: 'scoreMult',
             baseCost: 25,
-            name: '💎 Score Bonus',
-            desc: 'Increase base Score & Gold (+1%) [Max 300%]',
+            name: t.scoreBonus,
+            desc: t.scoreBonusDesc,
             level: upgrades.scoreMult,
             maxLevel: UPGRADE_LIMITS.scoreMult,
             cost: getUpgradeCost(25, upgrades.scoreMult, 'scoreMult')
@@ -917,8 +1085,8 @@ function renderShopItems() {
         {
             id: 'doublePoints',
             baseCost: 100,
-            name: '⚡ Global Multiplier',
-            desc: 'Multiply total Score & Gold (+1%) [Max 300%]',
+            name: t.globalMult,
+            desc: t.globalMultDesc,
             level: upgrades.doublePoints,
             maxLevel: UPGRADE_LIMITS.doublePoints,
             cost: getUpgradeCost(100, upgrades.doublePoints, 'doublePoints')
@@ -926,8 +1094,8 @@ function renderShopItems() {
         {
             id: 'xpMult',
             baseCost: 50,
-            name: '🧠 XP Bonus',
-            desc: 'Increase XP gain (+1%) [Max 300%]',
+            name: t.xpBonus,
+            desc: t.xpBonusDesc,
             level: upgrades.xpMult,
             maxLevel: UPGRADE_LIMITS.xpMult,
             cost: getUpgradeCost(50, upgrades.xpMult, 'xpMult')
@@ -935,8 +1103,8 @@ function renderShopItems() {
         {
             id: 'growthBoost',
             baseCost: 100000000,
-            name: '💪 Growth Surge',
-            desc: 'Gain extra length per fruit (+1 unit) [Max 10]',
+            name: t.growthSurge,
+            desc: t.growthSurgeDesc,
             level: upgrades.growthBoost,
             maxLevel: UPGRADE_LIMITS.growthBoost,
             cost: getUpgradeCost(0, upgrades.growthBoost, 'growthBoost')
@@ -944,8 +1112,8 @@ function renderShopItems() {
         {
             id: 'eatRange',
             baseCost: 1000000000,
-            name: '🧲 Magnet Range',
-            desc: 'Eat food from a distance (+1 block) [Max 3]',
+            name: t.magnetRange,
+            desc: t.magnetRangeDesc,
             level: upgrades.eatRange,
             maxLevel: UPGRADE_LIMITS.eatRange,
             cost: getUpgradeCost(0, upgrades.eatRange, 'eatRange')
@@ -953,8 +1121,8 @@ function renderShopItems() {
         {
             id: 'luckBoost',
             baseCost: 1000000, // 1 Million
-            name: '🍀 Lucky Charm',
-            desc: 'Increase chance of Rare Fruits [Max 10]',
+            name: t.luckyCharm,
+            desc: t.luckyCharmDesc,
             level: upgrades.luckBoost,
             maxLevel: UPGRADE_LIMITS.luckBoost,
             cost: getUpgradeCost(1000000, upgrades.luckBoost, 'luckBoost')
@@ -970,7 +1138,7 @@ function renderShopItems() {
             <p>Level: ${item.level} / ${item.maxLevel}</p>
             <div class="shop-buttons">
                 <button onclick="buyUpgrade('${item.id}', ${item.cost})" ${coins < item.cost || item.level >= item.maxLevel ? 'disabled style="opacity:0.5"' : ''}>
-                    ${item.level >= item.maxLevel ? 'MAX' : `Buy (${formatNumber(item.cost)})`}
+                    ${item.level >= item.maxLevel ? t.max : `${t.buy} (${formatNumber(item.cost)})`}
                 </button>
                 <button class="btn-max" onclick="buyMaxUpgrade('${item.id}', ${item.baseCost})" ${coins < item.cost || item.level >= item.maxLevel ? 'disabled style="opacity:0.5"' : ''}>
                     Max
@@ -1043,4 +1211,7 @@ window.buyUpgrade = function(id, cost) {
         playSound('eat'); // صوت نجاح الشراء
     }
 };
+
+// تطبيق اللغة عند البدء
+setLanguage(currentLanguage);
 });

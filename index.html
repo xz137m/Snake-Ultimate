@@ -13,14 +13,14 @@
     <div class="main-layout">
         <!-- Stats Bar (Moved Outside) -->
         <div class="stats-bar">
-            <span class="score-label">Score: <span id="score">0</span></span>
+            <span class="score-label"><span id="lblScore">Score:</span> <span id="score">0</span></span>
             <div class="level-container">
-                <span class="level-label" style="color: #00ffff;">Level: <span id="levelDisplay">1</span></span>
+                <span class="level-label" style="color: #00ffff;"><span id="lblLevel">Level:</span> <span id="levelDisplay">1</span></span>
                 <div class="xp-bar"><div id="xpFill"></div></div>
                 <span id="xpText">0 / 100</span>
             </div>
-            <span class="coins-label" style="color: #ffd700;">Gold: <span id="coinsDisplay">0</span></span>
-            <span class="high-score-label">High Score: <span id="highScore">0</span></span>
+            <span class="coins-label" style="color: #ffd700;"><span id="lblGold">Gold:</span> <span id="coinsDisplay">0</span></span>
+            <span class="high-score-label"><span id="lblHighScore">High Score:</span> <span id="highScore">0</span></span>
         </div>
 
         <div id="game-container">
@@ -32,7 +32,7 @@
         <div id="menu-overlay">
             <div class="menu-card">
                 <h1>🐍 Snake Ultimate</h1>
-                <p>
+                <p id="menuInstructions">
                     Use WASD / Arrows to move<br>
                     SPACE to Pause<br>
                     Collect food to grow & earn gold
@@ -48,25 +48,29 @@
         </div>
 
         <div id="shop-overlay" class="hidden">
-            <h1>🛒 Upgrade Shop</h1>
-            <p style="color: #ffd700; font-size: 24px; margin-bottom: 20px;">Balance: <span id="shopCoins">0</span> 💰</p>
+            <h1 id="shopTitle">🛒 Upgrade Shop</h1>
+            <p style="color: #ffd700; font-size: 24px; margin-bottom: 20px;"><span id="lblBalance">Balance:</span> <span id="shopCoins">0</span> 💰</p>
             <div id="shop-items" class="shop-grid"></div>
             <button id="closeShopBtn" style="margin-top: 20px; background: #ff3366;">❌ Close</button>
         </div>
 
         <div id="guide-overlay" class="hidden">
-            <h1>📜 Game Guide</h1>
+            <h1 id="guideTitle">📜 Game Guide</h1>
             <div id="guide-items" class="shop-grid"></div>
             <button id="closeGuideBtn" style="margin-top: 20px; background: #ff3366;">❌ Close</button>
         </div>
 
         <div id="settings-overlay" class="hidden">
             <div class="settings-card">
-                <h1>⚙️ Settings</h1>
+                <h1 id="settingsTitle">⚙️ Settings</h1>
                 <div class="menu-buttons">
                     <button id="toggleSoundBtn">🔊 Sound: ON</button>
                     <button id="toggleParticlesBtn">✨ Particles: ON</button>
                     <button id="toggleRangeBtn">📏 Show Range: ON</button>
+                    <div style="display: flex; gap: 10px; width: 100%;">
+                        <button id="langEnBtn" style="flex: 1; font-size: 18px;">English</button>
+                        <button id="langArBtn" style="flex: 1; font-size: 18px;">العربية</button>
+                    </div>
                     <button id="closeSettingsBtn" class="btn-close">❌ Close</button>
                 </div>
             </div>
@@ -74,7 +78,7 @@
         </div>
 
         <div class="progress-wrapper">
-            <span class="progress-label">Next Evolution (50 Length)</span>
+            <span class="progress-label" id="lblProgress">Next Evolution (50 Length)</span>
             <div class="progress-bar"><div id="progressFill"></div></div>
             <span id="progressText">1/50</span>
         </div>
