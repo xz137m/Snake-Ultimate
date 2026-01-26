@@ -3,8 +3,8 @@
 An advanced, RPG-style version of the classic Snake game. Eat, grow, earn gold, and upgrade your snake to reach god-like levels!
 
 ## 🎮 Play Online
-**[Click here to play Snake Ultimate](https://YOUR_USERNAME.github.io/REPO_NAME/)**
-*(Replace with your actual link after publishing)*
+**[Click here to play Snake Ultimate](https://xz137m.github.io/Snake-Ultimate/)**
+
 
 ## ✨ Features
 - **Infinite Progression:** Level up indefinitely with exponential costs.
@@ -30,4 +30,4 @@ An advanced, RPG-style version of the classic Snake game. Eat, grow, earn gold, 
 3. Enjoy!
 
 ---
-*Created with ❤️ by [Your Name]*
+*Created with ❤️ by [ mossab ]*

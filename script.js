@@ -78,30 +78,30 @@ const COLORS = {
 };
 
 const FRUIT_TYPES = [
-    { name: 'Apple', color: 'rgb(255, 51, 102)', glow: 'rgb(255, 153, 204)', points: 25, gold: 2, xp: 5, growth: 1, reqLevel: 0 },
-    { name: 'Orange', color: 'rgb(255, 200, 0)', glow: 'rgb(255, 230, 100)', points: 60, gold: 6, xp: 15, growth: 2, reqLevel: 0 },
-    { name: 'Grape', color: 'rgb(180, 0, 255)', glow: 'rgb(220, 100, 255)', points: 200, gold: 15, xp: 50, growth: 5, reqLevel: 0 },
-    { name: 'Diamond', color: 'rgb(0, 255, 255)', glow: 'rgb(150, 255, 255)', points: 1000, gold: 100, xp: 250, growth: 10, reqLevel: 0 },
+    { name: 'Apple', nameAr: 'تفاح', color: 'rgb(255, 51, 102)', glow: 'rgb(255, 153, 204)', points: 25, gold: 2, xp: 5, growth: 1, reqLevel: 0 },
+    { name: 'Orange', nameAr: 'برتقال', color: 'rgb(255, 200, 0)', glow: 'rgb(255, 230, 100)', points: 60, gold: 6, xp: 15, growth: 2, reqLevel: 0 },
+    { name: 'Grape', nameAr: 'عنب', color: 'rgb(180, 0, 255)', glow: 'rgb(220, 100, 255)', points: 200, gold: 15, xp: 50, growth: 5, reqLevel: 0 },
+    { name: 'Diamond', nameAr: 'ماس', color: 'rgb(0, 255, 255)', glow: 'rgb(150, 255, 255)', points: 1000, gold: 100, xp: 250, growth: 10, reqLevel: 0 },
     // New Fruits (Unlocked by Level)
-    { name: 'Banana', color: 'rgb(255, 255, 0)', glow: 'rgb(255, 255, 150)', points: 5000, gold: 500, xp: 1000, growth: 15, reqLevel: 15 },
-    { name: 'Plasma Berry', color: 'rgb(255, 0, 100)', glow: 'rgb(255, 100, 150)', points: 50000, gold: 5000, xp: 5000, growth: 20, reqLevel: 25 },
-    { name: 'Void Fruit', color: 'rgb(50, 0, 100)', glow: 'rgb(100, 50, 200)', points: 1e6, gold: 1e5, xp: 50000, growth: 30, reqLevel: 40 },
-    { name: 'Star Fragment', color: 'rgb(255, 255, 255)', glow: 'rgb(200, 200, 255)', points: 1e9, gold: 1e8, xp: 1e6, growth: 50, reqLevel: 60 },
-    { name: 'Singularity', color: 'rgb(0, 0, 0)', glow: 'rgb(50, 50, 50)', points: 1e12, gold: 1e11, xp: 1e9, growth: 100, reqLevel: 100 }
+    { name: 'Banana', nameAr: 'موز', color: 'rgb(255, 255, 0)', glow: 'rgb(255, 255, 150)', points: 5000, gold: 500, xp: 1000, growth: 15, reqLevel: 15 },
+    { name: 'Plasma Berry', nameAr: 'توت البلازما', color: 'rgb(255, 0, 100)', glow: 'rgb(255, 100, 150)', points: 50000, gold: 5000, xp: 5000, growth: 20, reqLevel: 25 },
+    { name: 'Void Fruit', nameAr: 'فاكهة الفراغ', color: 'rgb(50, 0, 100)', glow: 'rgb(100, 50, 200)', points: 1e6, gold: 1e5, xp: 50000, growth: 30, reqLevel: 40 },
+    { name: 'Star Fragment', nameAr: 'شظية نجم', color: 'rgb(255, 255, 255)', glow: 'rgb(200, 200, 255)', points: 1e9, gold: 1e8, xp: 1e6, growth: 50, reqLevel: 60 },
+    { name: 'Singularity', nameAr: 'تفرد', color: 'rgb(0, 0, 0)', glow: 'rgb(50, 50, 50)', points: 1e12, gold: 1e11, xp: 1e9, growth: 100, reqLevel: 100 }
 ];
 
 const PRESTIGE_COLORS = [
-    { name: 'Green Snake', head: 'rgb(0, 255, 136)', body: 'rgb(0, 204, 102)', reqLevel: 0 },
-    { name: 'Blue Snake', head: 'rgb(0, 150, 255)', body: 'rgb(0, 100, 200)', reqLevel: 0 },
-    { name: 'Red Snake', head: 'rgb(255, 50, 50)', body: 'rgb(200, 0, 0)', reqLevel: 0 },
-    { name: 'Golden Snake', head: 'rgb(255, 215, 0)', body: 'rgb(200, 160, 0)', reqLevel: 0 },
-    { name: 'Pink Snake', head: 'rgb(255, 0, 255)', body: 'rgb(200, 0, 200)', reqLevel: 0 },
+    { name: 'Green Snake', nameAr: 'الثعبان الأخضر', head: 'rgb(0, 255, 136)', body: 'rgb(0, 204, 102)', reqLevel: 0 },
+    { name: 'Blue Snake', nameAr: 'الثعبان الأزرق', head: 'rgb(0, 150, 255)', body: 'rgb(0, 100, 200)', reqLevel: 0 },
+    { name: 'Red Snake', nameAr: 'الثعبان الأحمر', head: 'rgb(255, 50, 50)', body: 'rgb(200, 0, 0)', reqLevel: 0 },
+    { name: 'Golden Snake', nameAr: 'الثعبان الذهبي', head: 'rgb(255, 215, 0)', body: 'rgb(200, 160, 0)', reqLevel: 0 },
+    { name: 'Pink Snake', nameAr: 'الثعبان الوردي', head: 'rgb(255, 0, 255)', body: 'rgb(200, 0, 200)', reqLevel: 0 },
     // New Colors (Unlocked by Level)
-    { name: 'Neon Cyan', head: 'rgb(0, 255, 255)', body: 'rgb(0, 200, 200)', reqLevel: 15 },
-    { name: 'Amethyst', head: 'rgb(153, 50, 204)', body: 'rgb(138, 43, 226)', reqLevel: 25 },
-    { name: 'Magma', head: 'rgb(255, 69, 0)', body: 'rgb(139, 0, 0)', reqLevel: 40 },
-    { name: 'Cyber Silver', head: 'rgb(192, 192, 192)', body: 'rgb(128, 128, 128)', reqLevel: 60 },
-    { name: 'Cosmic Void', head: 'rgb(20, 20, 20)', body: 'rgb(50, 50, 50)', reqLevel: 100 }
+    { name: 'Neon Cyan', nameAr: 'سماوي نيون', head: 'rgb(0, 255, 255)', body: 'rgb(0, 200, 200)', reqLevel: 15 },
+    { name: 'Amethyst', nameAr: 'جمشت', head: 'rgb(153, 50, 204)', body: 'rgb(138, 43, 226)', reqLevel: 25 },
+    { name: 'Magma', nameAr: 'حمم', head: 'rgb(255, 69, 0)', body: 'rgb(139, 0, 0)', reqLevel: 40 },
+    { name: 'Cyber Silver', nameAr: 'فضي سايبر', head: 'rgb(192, 192, 192)', body: 'rgb(128, 128, 128)', reqLevel: 60 },
+    { name: 'Cosmic Void', nameAr: 'فراغ كوني', head: 'rgb(20, 20, 20)', body: 'rgb(50, 50, 50)', reqLevel: 100 }
 ];
 
 // حالة اللعبة
@@ -195,7 +195,15 @@ const TRANSLATIONS = {
         playerLevelSection: "⭐ Player Level (XP)",
         confirmReset: "Are you sure? This will wipe all your progress (Gold, Levels, Upgrades) forever!",
         paused: "⏸️ PAUSED",
-        instructions: "Use WASD / Arrows to move<br>SPACE to Pause<br>Collect food to grow & earn gold"
+        instructions: "Use WASD / Arrows to move<br>SPACE to Pause<br>Collect food to grow & earn gold",
+        xp: "XP:",
+        maxLevel: "Max Level:",
+        growth: "Growth:",
+        multiplier: "Multiplier:",
+        xpMultiplier: "XP Multiplier:",
+        starter: "Starter",
+        evolutionTier: "Evolution Tier",
+        levelReq: "Level"
     },
     ar: {
         score: "النقاط:",
@@ -252,7 +260,15 @@ const TRANSLATIONS = {
         playerLevelSection: "⭐ مستوى اللاعب (XP)",
         confirmReset: "هل أنت متأكد؟ سيتم مسح كل تقدمك (الذهب، المستوى، التطويرات) للأبد!",
         paused: "⏸️ موقوف",
-        instructions: "استخدم WASD أو الأسهم للتحرك<br>SPACE للإيقاف<br>اجمع الطعام لتكبر وتكسب الذهب"
+        instructions: "استخدم WASD أو الأسهم للتحرك<br>SPACE للإيقاف<br>اجمع الطعام لتكبر وتكسب الذهب",
+        xp: "الخبرة:",
+        maxLevel: "أقصى مستوى:",
+        growth: "النمو:",
+        multiplier: "المضاعف:",
+        xpMultiplier: "مضاعف الخبرة:",
+        starter: "البداية",
+        evolutionTier: "مرحلة التطور",
+        levelReq: "مستوى"
     }
 };
 
@@ -976,7 +992,7 @@ function renderGuideItems() {
         let isUnlocked = Math.max(score, highScore) >= tier.req;
         div.style.borderColor = isUnlocked ? '#00ff00' : '#ff3366';
         div.innerHTML = `
-            <h3 style="color: ${isUnlocked ? '#00ff00' : '#ff3366'}">Max Level: ${tier.limit}</h3>
+            <h3 style="color: ${isUnlocked ? '#00ff00' : '#ff3366'}">${t.maxLevel} ${tier.limit}</h3>
             <p>${t.req}</p>
             <p style="color: #ffd700">${formatNumber(tier.req)} Score</p>
             <p>${isUnlocked ? t.unlocked : t.locked}</p>
@@ -998,19 +1014,20 @@ function renderGuideItems() {
         let currentXp = fruit.xp * prestigeMult * xpUpgradeMult;
         
         let isUnlocked = playerLevel >= fruit.reqLevel;
+        const name = currentLanguage === 'ar' ? fruit.nameAr : fruit.name;
 
         const div = document.createElement('div');
         div.className = 'shop-item';
         div.style.borderColor = isUnlocked ? fruit.color : '#555';
         div.style.opacity = isUnlocked ? '1' : '0.5';
         div.innerHTML = `
-            <h3 style="color: ${fruit.color}">${fruit.name} ${!isUnlocked ? t.locked : ''}</h3>
-            ${!isUnlocked ? `<p style="color: #ff3366">Level ${fruit.reqLevel}</p>` : ''}
+            <h3 style="color: ${fruit.color}">${name} ${!isUnlocked ? t.locked : ''}</h3>
+            ${!isUnlocked ? `<p style="color: #ff3366">${t.levelReq} ${fruit.reqLevel}</p>` : ''}
             <div style="width: 20px; height: 20px; background: ${fruit.color}; border-radius: 50%; margin: 10px auto; box-shadow: 0 0 10px ${fruit.glow}"></div>
-            <p>Growth: +${fruit.growth}</p>
-            <p>Score: ${formatNumber(Math.floor(currentPoints))}</p>
-            <p>XP: ${formatNumber(Math.floor(currentXp))}</p>
-            <p>Gold: ${formatNumber(Math.floor(currentGold))}</p>
+            <p>${t.growth} +${fruit.growth}</p>
+            <p>${t.score} ${formatNumber(Math.floor(currentPoints))}</p>
+            <p>${t.xp} ${formatNumber(Math.floor(currentXp))}</p>
+            <p>${t.gold} ${formatNumber(Math.floor(currentGold))}</p>
         `;
         container.appendChild(div);
     });
@@ -1024,17 +1041,18 @@ function renderGuideItems() {
     PRESTIGE_COLORS.forEach((snakeType, index) => {
         let isUnlocked = playerLevel >= snakeType.reqLevel;
         const mult = Math.pow(2, index); // This logic might need adjustment if index changes based on filter, but for guide we show all.
+        const snakeName = currentLanguage === 'ar' ? snakeType.nameAr : snakeType.name;
         const div = document.createElement('div');
         div.className = 'shop-item';
         div.style.borderColor = isUnlocked ? snakeType.head : '#555';
         div.style.opacity = isUnlocked ? '1' : '0.5';
         div.innerHTML = `
-            <h3 style="color: ${snakeType.head}">${snakeType.name} ${!isUnlocked ? t.locked : ''}</h3>
-            ${!isUnlocked ? `<p style="color: #ff3366">Level ${snakeType.reqLevel}</p>` : ''}
+            <h3 style="color: ${snakeType.head}">${snakeName} ${!isUnlocked ? t.locked : ''}</h3>
+            ${!isUnlocked ? `<p style="color: #ff3366">${t.levelReq} ${snakeType.reqLevel}</p>` : ''}
             <div style="width: 40px; height: 40px; background: ${snakeType.body}; border: 4px solid ${snakeType.head}; margin: 10px auto;"></div>
-            <p>Multiplier: x${mult}</p>
-            <p>XP Multiplier: x${mult}</p>
-            <p>${index === 0 ? 'Starter' : 'Evolution Tier ' + index}</p>
+            <p>${t.multiplier} x${mult}</p>
+            <p>${t.xpMultiplier} x${mult}</p>
+            <p>${index === 0 ? t.starter : t.evolutionTier + ' ' + index}</p>
         `;
         container.appendChild(div);
     });
