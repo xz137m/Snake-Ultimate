@@ -7,20 +7,83 @@
     <meta property="og:title" content="Snake Ultimate 🐍">
     <meta property="og:description" content="Eat, Grow, Upgrade! The ultimate snake experience with levels and shop system.">
     <title>Snake Ultimate</title>
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🐍</text></svg>">
     <link rel="stylesheet" href="style.css">
+    <style>
+        /* Enhanced UI Styles for Dashboard Look */
+        .ui-panel {
+            background: rgba(20, 20, 20, 0.9);
+            border: 1px solid rgba(255, 255, 255, 0.15);
+            border-radius: 8px;
+            padding: 8px 12px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.3);
+            backdrop-filter: blur(5px);
+        }
+        .stat-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            width: 100%;
+        }
+        .stat-value {
+            font-weight: bold;
+            font-family: 'Courier New', monospace;
+            font-size: 1.1em;
+        }
+        .xp-track {
+            width: 100%;
+            height: 10px;
+            background: #333;
+            border-radius: 5px;
+            overflow: hidden;
+            box-shadow: inset 0 1px 3px rgba(0,0,0,0.5);
+        }
+    </style>
+    <div id="fpsCounter" style="position: fixed; top: 5px; left: 5px; color: #00ff00; font-family: monospace; font-weight: bold; z-index: 1000; text-shadow: 1px 1px 2px black;">FPS: 60</div>
+    <div id="killCounterDisplay" style="position: fixed; top: 5px; right: 5px; color: #ff3333; font-family: monospace; font-weight: bold; z-index: 1000; text-shadow: 1px 1px 2px black; font-size: 18px;">💀 Kills: 0</div>
+    <div id="bossTimerDisplay" style="position: fixed; top: 30px; right: 5px; color: #e040fb; font-family: monospace; font-weight: bold; z-index: 1000; text-shadow: 1px 1px 2px black; font-size: 18px;">👹 Boss: 03:00</div>
 </head>
 <body>
+    <canvas id="minimapCanvas" width="200" height="200"></canvas>
     <div class="main-layout">
-        <!-- Stats Bar (Moved Outside) -->
-        <div class="stats-bar">
-            <span class="score-label"><span id="lblScore">Score:</span> <span id="score">0</span></span>
-            <div class="level-container">
-                <span class="level-label" style="color: #00ffff;"><span id="lblLevel">Level:</span> <span id="levelDisplay">1</span></span>
-                <div class="xp-bar"><div id="xpFill"></div></div>
-                <span id="xpText">0 / 100</span>
+        <!-- Stats Bar (Structured Grid Layout) -->
+        <div class="stats-bar" style="display: flex; justify-content: space-between; align-items: center; width: 95%; max-width: 1200px; margin-bottom: 25px; gap: 50px; text-shadow: 0 2px 5px rgba(0,0,0,0.8); background: none; border: none; box-shadow: none;">
+            
+            <!-- Left Group: Score & High Score -->
+            <div style="display: flex; flex-direction: column; gap: 20px; flex: 1;">
+                <div class="stat-row">
+                    <span id="lblScore" style="color: #ddd;">Score:</span> 
+                    <span id="score" class="stat-value" style="color: white;">0</span>
+                </div>
+                <div class="stat-row">
+                    <span id="lblHighScore" style="color: #aaa;">High Score:</span> 
+                    <span id="highScore" class="stat-value" style="color: #ccc;">0</span>
+                </div>
             </div>
-            <span class="coins-label" style="color: #ffd700;"><span id="lblGold">Gold:</span> <span id="coinsDisplay">0</span></span>
-            <span class="high-score-label"><span id="lblHighScore">High Score:</span> <span id="highScore">0</span></span>
+
+            <!-- Center Group: Level -->
+            <div style="flex: 1.5; display: flex; flex-direction: column; justify-content: center; align-items: center; padding: 0 20px;">
+                <div style="display: flex; justify-content: space-between; width: 100%; margin-bottom: 5px;">
+                    <span id="lblLevel" style="color: #00ffff; font-weight: bold;">Level:</span>
+                    <span id="levelDisplay" style="color: #00ffff; font-weight: bold; font-size: 1.2em;">1</span>
+                </div>
+                <div class="xp-track">
+                    <div id="xpFill" style="height: 100%; background: linear-gradient(90deg, #00bcd4, #00ffff); width: 0%; transition: width 0.3s;"></div>
+                </div>
+                <span id="xpText" style="font-size: 0.8em; color: #888; margin-top: 4px;">0 / 100</span>
+            </div>
+
+            <!-- Right Group: Gold & RP -->
+            <div style="display: flex; flex-direction: column; gap: 20px; flex: 1;">
+                <div class="stat-row">
+                    <span id="lblGold" style="color: #ffd700;">Gold:</span> 
+                    <span id="coinsDisplay" class="stat-value" style="color: #ffd700;">0</span>
+                </div>
+                <div class="stat-row">
+                    <span id="lblRP" style="color: #e040fb;">RP:</span> 
+                    <span id="rpDisplay" class="stat-value" style="color: #e040fb;">0</span>
+                </div>
+            </div>
         </div>
 
         <div id="game-container">
@@ -30,20 +93,26 @@
         </div>
 
         <div id="menu-overlay">
-            <div class="menu-card">
-                <h1>🐍 Snake Ultimate</h1>
+            <!-- Header Section -->
+            <div class="menu-header">
+                <h1 style="font-size: 72px; margin-bottom: 0;">🐍 Snake Ultimate</h1>
                 <p id="menuInstructions">
                     Use WASD / Arrows to move<br>
                     SPACE to Pause<br>
                     Collect food to grow & earn gold
                 </p>
-                <div class="menu-buttons">
-                    <button id="startBtn">▶ Play</button>
-                    <button id="shopBtn" style="background: linear-gradient(45deg, #ffb300, #ffcc00);">🛒 Shop</button>
-                    <button id="guideBtn" style="background: linear-gradient(45deg, #9c27b0, #e040fb);">📜 Guide</button>
-                    <button id="settingsBtn" style="background: linear-gradient(45deg, #607d8b, #78909c);">⚙️ Settings</button>
-                    <button id="resetBtn" class="btn-reset">🗑️ Reset Data</button>
-                </div>
+            </div>
+
+            <!-- Center Play Button -->
+            <button id="startBtn" class="btn-play-large">▶ Play</button>
+
+            <!-- Footer Buttons -->
+            <div class="menu-footer">
+                <button id="shopBtn" class="btn-menu-item" style="background: linear-gradient(45deg, #ffb300, #ffcc00);">🛒 Shop</button>
+                <button id="rebirthMenuBtn" class="btn-menu-item" style="background: linear-gradient(45deg, #d500f9, #aa00ff);">🌀 Rebirth</button>
+                <button id="guideBtn" class="btn-menu-item" style="background: linear-gradient(45deg, #9c27b0, #e040fb);">📜 Guide</button>
+                <button id="settingsBtn" class="btn-menu-item" style="background: linear-gradient(45deg, #607d8b, #78909c);">⚙️ Settings</button>
+                <button id="resetBtn" class="btn-menu-item btn-reset" style="font-size: 18px;">🗑️ Reset</button>
             </div>
         </div>
 
@@ -52,6 +121,14 @@
             <p style="color: #ffd700; font-size: 24px; margin-bottom: 20px;"><span id="lblBalance">Balance:</span> <span id="shopCoins">0</span> 💰</p>
             <div id="shop-items" class="shop-grid"></div>
             <button id="closeShopBtn" style="margin-top: 20px; background: #ff3366;">❌ Close</button>
+        </div>
+
+        <div id="rebirth-overlay" class="hidden">
+            <h1 id="rebirthTitle" style="color: #e040fb;">🌀 Rebirth</h1>
+            <p style="color: #e040fb; font-size: 20px; margin-bottom: 10px;"><span id="lblRPBalance">RP:</span> <span id="rpShopDisplay">0</span> 🟣</p>
+            <button id="doRebirthBtn" class="btn-rebirth">🔥 Rebirth Now (+0 RP)</button>
+            <div id="rebirth-items" class="shop-grid" style="margin-top: 20px;"></div>
+            <button id="closeRebirthBtn" style="margin-top: 20px; background: #ff3366;">❌ Close</button>
         </div>
 
         <div id="guide-overlay" class="hidden">
@@ -64,9 +141,15 @@
             <div class="settings-card">
                 <h1 id="settingsTitle">⚙️ Settings</h1>
                 <div class="menu-buttons">
+                    <div class="settings-section-title" id="lblAudioGame">🔊 Audio & Gameplay</div>
                     <button id="toggleSoundBtn">🔊 Sound: ON</button>
-                    <button id="toggleParticlesBtn">✨ Particles: ON</button>
                     <button id="toggleRangeBtn">📏 Show Range: ON</button>
+                    
+                    <div class="settings-section-title" id="lblGraphics">🎨 Graphics & Performance</div>
+                    <button id="toggleParticlesBtn">✨ Particles: ON</button>
+                    <button id="toggleGlowBtn">💡 Glow: ON</button>
+                    <button id="toggleBrightnessBtn">☀️ Brightness: 100%</button>
+
                     <div style="display: flex; gap: 10px; width: 100%;">
                         <button id="langEnBtn" style="flex: 1; font-size: 18px;">English</button>
                         <button id="langArBtn" style="flex: 1; font-size: 18px;">العربية</button>
@@ -77,12 +160,29 @@
         </div>
         </div>
 
-        <div class="progress-wrapper">
-            <span class="progress-label" id="lblProgress">Next Evolution (50 Length)</span>
-            <div class="progress-bar"><div id="progressFill"></div></div>
-            <span id="progressText">1/50</span>
+        <div style="width: 95%; max-width: 1200px; margin-top: 15px; display: flex; align-items: center; gap: 15px; box-sizing: border-box; text-shadow: 0 2px 5px rgba(0,0,0,0.8);">
+            <span id="lblProgress" style="white-space: nowrap; font-weight: bold; color: #ff9800;">Next Evolution</span>
+            <div class="xp-track" style="margin: 0; flex-grow: 1; background: #333;">
+                <div id="progressFill" style="height: 100%; background: linear-gradient(90deg, #ff9800, #ff5722); width: 0%; transition: width 0.3s;"></div>
+            </div>
+            <span id="progressText" style="white-space: nowrap; font-family: monospace; color: #ccc;">1/50</span>
         </div>
     </div>
-    <script src="script.js"></script>
+ <!-- المكتبات والثوابت أولاً -->
+ <script src="js/constants.js"></script>
+ <script src="js/utils.js"></script>
+ <script src="js/state.js"></script> <!-- المتغيرات العامة -->
+
+ <!-- الطبقات والواجهة -->
+ <script src="js/ui.js"></script>
+ <script src="js/shop.js"></script>
+ <script src="js/ResetLayer.js"></script>
+ <script src="js/Projectile.js"></script>
+ <script src="js/AiSnake.js"></script>
+ 
+ <!-- منطق اللعبة والتشغيل -->
+ <script src="js/game.js"></script>
+ <script src="js/main.js"></script>
+ 
 </body>
-</html>
+</html> 

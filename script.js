@@ -1,40 +1,82 @@
-document.addEventListener('DOMContentLoaded', () => {
-const canvas = document.getElementById('gameCanvas');
-const ctx = canvas.getContext('2d');
-const scoreElement = document.getElementById('score');
-const highScoreElement = document.getElementById('highScore');
-const coinsElement = document.getElementById('coinsDisplay');
-const levelElement = document.getElementById('levelDisplay');
-const menuOverlay = document.getElementById('menu-overlay');
-const shopOverlay = document.getElementById('shop-overlay');
-const guideOverlay = document.getElementById('guide-overlay');
-const settingsOverlay = document.getElementById('settings-overlay');
-const startBtn = document.getElementById('startBtn');
-const shopBtn = document.getElementById('shopBtn');
-const guideBtn = document.getElementById('guideBtn');
-const settingsBtn = document.getElementById('settingsBtn');
-const resetBtn = document.getElementById('resetBtn');
-const closeShopBtn = document.getElementById('closeShopBtn');
-const closeGuideBtn = document.getElementById('closeGuideBtn');
-const closeSettingsBtn = document.getElementById('closeSettingsBtn');
-const toggleSoundBtn = document.getElementById('toggleSoundBtn');
-const toggleParticlesBtn = document.getElementById('toggleParticlesBtn');
-const toggleRangeBtn = document.getElementById('toggleRangeBtn');
-const langEnBtn = document.getElementById('langEnBtn');
-const langArBtn = document.getElementById('langArBtn');
-const progressFill = document.getElementById('progressFill');
-const progressText = document.getElementById('progressText');
-const xpFill = document.getElementById('xpFill');
-const xpText = document.getElementById('xpText');
+// تعريف المتغيرات العامة (Global Variables) لتكون متاحة لجميع الملفات
+var snake = [];
+var particles = [];
+var foods = [];
+var velocity = { x: 0, y: 0 };
+var nextVelocity = { x: 0, y: 0 };
+var score = 0;
+var growthBuffer = 0;
+var prestigeLevel = 0;
+var playerLevel = Number(localStorage.getItem('snakePlayerLevel')) || 1;
+var currentXp = Number(localStorage.getItem('snakeXp')) || 0;
+var coins = Number(localStorage.getItem('snakeCoins')) || 0;
+var highScore = Number(localStorage.getItem('snakeHighScore')) || 0;
+var upgrades = JSON.parse(localStorage.getItem('snakeUpgrades')) || {};
+var rebirthPoints = Number(localStorage.getItem('snakeRP')) || 0;
+var prestigeUpgrades = JSON.parse(localStorage.getItem('snakePrestigeUpgrades')) || { permScore: 0, permXp: 0 };
+var soundEnabled = localStorage.getItem('snakeSound') !== 'false';
+var particlesEnabled = localStorage.getItem('snakeParticles') !== 'false';
+var showEatRange = localStorage.getItem('snakeShowRange') !== 'false';
+var currentLanguage = localStorage.getItem('snakeLanguage') || 'en';
+var camera = { x: 0, y: 0 };
+var isPaused = false;
+var isGameOver = false;
+var speed = 110;
+var gameLoop;
+var renderLoopId;
+var audioCtx;
 
-// نظام الصوت (Web Audio API)
-let audioCtx;
+// تعريف عناصر الواجهة كمتغيرات عامة
+var canvas, ctx, scoreElement, highScoreElement, coinsElement, levelElement;
+var menuOverlay, shopOverlay, guideOverlay, settingsOverlay, rebirthOverlay, rpElement;
+var progressFill, progressText, xpFill, xpText;
+var toggleSoundBtn, toggleParticlesBtn, toggleRangeBtn;
+
+document.addEventListener('DOMContentLoaded', () => {
+    // ربط العناصر بالمتغيرات العامة (هذا الجزء كان مفقوداً)
+    canvas = document.getElementById('gameCanvas');
+    ctx = canvas.getContext('2d');
+    scoreElement = document.getElementById('score');
+    highScoreElement = document.getElementById('highScore');
+    coinsElement = document.getElementById('coinsDisplay');
+    levelElement = document.getElementById('levelDisplay');
+    rpElement = document.getElementById('rpDisplay'); // عنصر نقاط الريبيرث
+    
+    menuOverlay = document.getElementById('menu-overlay');
+    shopOverlay = document.getElementById('shop-overlay');
+    guideOverlay = document.getElementById('guide-overlay');
+    settingsOverlay = document.getElementById('settings-overlay');
+    rebirthOverlay = document.getElementById('rebirth-overlay');
+
+    progressFill = document.getElementById('progressFill');
+    progressText = document.getElementById('progressText');
+    xpFill = document.getElementById('xpFill');
+    xpText = document.getElementById('xpText');
+
+    const startBtn = document.getElementById('startBtn');
+    const shopBtn = document.getElementById('shopBtn');
+    const guideBtn = document.getElementById('guideBtn');
+    const settingsBtn = document.getElementById('settingsBtn');
+    const resetBtn = document.getElementById('resetBtn');
+    const closeShopBtn = document.getElementById('closeShopBtn');
+    const closeGuideBtn = document.getElementById('closeGuideBtn');
+    const closeSettingsBtn = document.getElementById('closeSettingsBtn');
+    toggleSoundBtn = document.getElementById('toggleSoundBtn');
+    toggleParticlesBtn = document.getElementById('toggleParticlesBtn');
+    toggleRangeBtn = document.getElementById('toggleRangeBtn');
+    const langEnBtn = document.getElementById('langEnBtn');
+    const langArBtn = document.getElementById('langArBtn');
+
+    // تصدير الدوال المهمة للنافذة (Window) لتراها الملفات الأخرى
+    window.updateScore = updateScore;
+    window.playSound = playSound;
+    window.startGame = startGame;
 
 // إعدادات الشبكة
 const GRID_SIZE = 20;
 // حجم العالم (متغير حسب المستوى)
-let TILE_COUNT_X = 20;
-let TILE_COUNT_Y = 20;
+var TILE_COUNT_X = 20;
+var TILE_COUNT_Y = 20;
 
 // حدود التطويرات
 const UPGRADE_LIMITS = {
@@ -50,10 +92,8 @@ const UPGRADE_LIMITS = {
 // أسعار ثابتة للتطويرات الخاصة
 const STATIC_COSTS = {
     eatRange: [
-        1e12, // Level 1: 1T
-        1e21, // Level 2: 1Sx
-        1e36  // Level 3: 1UnD
-    ],
+        1e12, // Level 1: 1TD
+
     growthBoost: [
         1e8, 5e8, 1e9, 5e9, 1e10, 5e10, 1e11, 5e11, 1e12, 5e12 // 10 Levels (Cheaper & Closer)
     ]
@@ -61,9 +101,7 @@ const STATIC_COSTS = {
 
 // حدود المستويات (Level Caps)
 const LEVEL_CAPS = [
-    { limit: 15, req: 0 },
-    { limit: 25, req: 1e15 },       // 1 Quadrillion (Harder)
-    { limit: 40, req: 1e24 },       // 1 Septillion (Much Harder)
+    { limit: 15, req: 0 },1e24 },       // 1 Septillion (Much Harder)
     { limit: 60, req: 1e36 },       // 1 Undecillion (Insane)
     { limit: 100, req: 1e50 }       // 1 Quindecillion (Impossible?)
 ];
@@ -111,26 +149,6 @@ const PRESTIGE_COLORS = [
     { name: 'Reality Breaker', nameAr: 'محطم الواقع', head: 'rgb(255, 0, 255)', body: 'rgb(200, 0, 200)', reqLevel: 300 }
 ];
 
-// حالة اللعبة
-let snake = [];
-let particles = []; // مصفوفة الجسيمات
-let foods = []; // مصفوفة الطعام
-let velocity = { x: 0, y: 0 };
-let nextVelocity = { x: 0, y: 0 };
-let score = 0;
-let growthBuffer = 0; // مخزون النمو المتبقي
-let prestigeLevel = 0;
-let playerLevel = Number(localStorage.getItem('snakePlayerLevel')) || 1;
-let currentXp = Number(localStorage.getItem('snakeXp')) || 0;
-let coins = Number(localStorage.getItem('snakeCoins')) || 0;
-let highScore = Number(localStorage.getItem('snakeHighScore')) || 0;
-let upgrades = JSON.parse(localStorage.getItem('snakeUpgrades')) || {};
-let soundEnabled = localStorage.getItem('snakeSound') !== 'false';
-let particlesEnabled = localStorage.getItem('snakeParticles') !== 'false';
-let showEatRange = localStorage.getItem('snakeShowRange') !== 'false';
-let currentLanguage = localStorage.getItem('snakeLanguage') || 'en';
-let camera = { x: 0, y: 0 }; // متغير الكاميرا
-
 // تحديث حجم العالم بناءً على المستوى المحفوظ
 TILE_COUNT_X = 20 + playerLevel;
 TILE_COUNT_Y = 20 + playerLevel;
@@ -143,12 +161,6 @@ if (typeof upgrades.xpMult === 'undefined') upgrades.xpMult = 0;
 if (typeof upgrades.growthBoost === 'undefined') upgrades.growthBoost = 0;
 if (typeof upgrades.eatRange === 'undefined') upgrades.eatRange = 0;
 if (typeof upgrades.luckBoost === 'undefined') upgrades.luckBoost = 0;
-
-let gameLoop;
-let renderLoopId; // معرف حلقة الرسم
-let isPaused = false;
-let isGameOver = false;
-let speed = 110; // Slower speed (was 80)
 
 // قاموس الترجمة
 const TRANSLATIONS = {
@@ -166,28 +178,8 @@ const TRANSLATIONS = {
         finalScore: "Final Score:",
         goldEarned: "Gold Earned:",
         playAgain: "🔄 Play Again",
-        mainMenu: "🏠 Main Menu",
-        shopTitle: "🛒 Upgrade Shop",
-        guideTitle: "📜 Game Guide",
-        settingsTitle: "⚙️ Settings",
-        balance: "Balance:",
-        close: "❌ Close",
-        soundOn: "🔊 Sound: ON",
-        soundOff: "🔊 Sound: OFF",
-        particlesOn: "✨ Particles: ON",
-        particlesOff: "✨ Particles: OFF",
-        rangeOn: "📏 Show Range: ON",
-        rangeOff: "📏 Show Range: OFF",
-        nextEvo: "Next Evolution (50 Length)",
-        moreFood: "🍎 More Food",
-        moreFoodDesc: "Increase max food on screen (+1)",
-        scoreBonus: "💎 Score Bonus",
-        scoreBonusDesc: "Increase base Score & Gold (+1%) [Max 300%]",
-        globalMult: "⚡ Global Multiplier",
-        globalMultDesc: "Multiply total Score & Gold (+1%) [Max 300%]",
-        xpBonus: "🧠 XP Bonus",
-        xpBonusDesc: "Increase XP gain (+1%) [Max 300%]",
-        growthSurge: "💪 Growth Surge",
+ 
+
         growthSurgeDesc: "Gain extra length per fruit (+1 unit) [Max 10]",
         magnetRange: "🧲 Magnet Range",
         magnetRangeDesc: "Eat food from a distance (+1 block) [Max 3]",
@@ -199,13 +191,7 @@ const TRANSLATIONS = {
         unlocked: "✅ UNLOCKED",
         req: "Requirement:",
         currentLevel: "Current Level:",
-        levelEffect: "Each level doubles all Score and Gold (x2)",
-        currentMult: "Current Multiplier:",
-        fruitsSection: "🍎 Fruits (Current Values)",
-        snakesSection: "🐍 Snakes (Evolution)",
-        capsSection: "🔒 Level Caps (Requirements)",
-        playerLevelSection: "⭐ Player Level (XP)",
-        confirmReset: "Are you sure? This will wipe all your progress (Gold, Levels, Upgrades) forever!",
+        levelEffect: "Each level doubles all Score and Gold (kee onfmR will wipe all your progress (Gold, Levels, Upgrades) forever!",
         paused: "⏸️ PAUSED",
         instructions: "Use WASD / Arrows to move<br>SPACE to Pause<br>Collect food to grow & earn gold",
         xp: "XP:",
@@ -321,9 +307,7 @@ function getCurrentLevelCap() {
 }
 
 // تهيئة العرض
-highScoreElement.innerText = formatNumber(highScore);
-coinsElement.innerText = formatNumber(coins);
-levelElement.innerText = playerLevel;
+updateScore(); // تحديث كل الأرقام فوراً عند التحميل
 
 // مستمعات الأحداث
 startBtn.addEventListener('click', startGame);
@@ -917,9 +901,10 @@ function draw() {
 }
 
 function updateScore() {
-    scoreElement.innerText = formatNumber(score);
-    coinsElement.innerText = formatNumber(coins);
-    levelElement.innerText = playerLevel;
+    if (scoreElement) scoreElement.innerText = formatNumber(score);
+    if (coinsElement) coinsElement.innerText = formatNumber(coins);
+    if (levelElement) levelElement.innerText = playerLevel;
+    if (rpElement) rpElement.innerText = formatNumber(rebirthPoints); // تحديث نقاط الريبيرث
     updateXpBar();
 }
 
