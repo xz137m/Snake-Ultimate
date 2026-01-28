@@ -107,6 +107,9 @@ document.addEventListener('DOMContentLoaded', () => {
     document.getElementById('langEnBtn').addEventListener('click', () => setLanguage('en'));
     document.getElementById('langArBtn').addEventListener('click', () => setLanguage('ar'));
 
+    // تهيئة تحكم الجوال
+    initMobileControls();
+
     // تشغيل خلفية الصفحة المتحركة
     initBackgroundAnimation();
 
