@@ -9,19 +9,73 @@
     <title>Snake Ultimate</title>
     <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🐍</text></svg>">
     <link rel="stylesheet" href="style.css">
-    <div id="fpsCounter" style="position: fixed; top: 5px; left: 5px; color: #00ff00; font-family: monospace; font-weight: bold; z-index: 1000; text-shadow: 1px 1px 2px black;">FPS: 60</div>
-    <div id="killCounterDisplay" style="position: fixed; top: 5px; right: 5px; color: #ff3333; font-family: monospace; font-weight: bold; z-index: 1000; text-shadow: 1px 1px 2px black; font-size: 18px;">💀 Kills: 0</div>
-    <div id="bossTimerDisplay" style="position: fixed; top: 30px; right: 5px; color: #e040fb; font-family: monospace; font-weight: bold; z-index: 1000; text-shadow: 1px 1px 2px black; font-size: 18px;">👹 Boss: 03:00</div>
     
-    <!-- Hearts Container (Bottom Right) -->
-    <div id="heartsContainer"></div>
+    <style>
+        /* --- تحسينات الواجهة (HUD Styles) --- */
+        .hud-widget {
+            position: fixed;
+            z-index: 1000;
+            background: rgba(15, 20, 35, 0.85);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-left: 3px solid;
+            backdrop-filter: blur(8px);
+            padding: 8px 16px;
+            border-radius: 4px;
+            font-family: 'Segoe UI', monospace;
+            font-weight: bold;
+            font-size: 16px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.5);
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            transition: transform 0.2s;
+        }
+        .hud-widget:hover { transform: scale(1.02); }
+
+        /* تصميم القلوب الجديد (خلايا طاقة) */
+        .heart-block {
+            width: 24px;
+            height: 14px;
+            border: 1px solid #555;
+            transform: skewX(-25deg); /* ميلان ليعطي طابع السرعة */
+            margin-right: 4px;
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        /* تأثير الرادار للخريطة */
+        .radar-sweep {
+            position: absolute;
+            top: 50%; left: 50%;
+            width: 150%; height: 150%;
+            background: conic-gradient(from 0deg, transparent 0deg, rgba(0, 255, 255, 0.1) 60deg, transparent 60deg);
+            transform-origin: top left;
+            animation: radar-spin 4s linear infinite;
+            pointer-events: none;
+            /* border-radius: 50%; removed for square map */
+        }
+        @keyframes radar-spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
+    </style>
+
+    <div id="fpsCounter" class="hud-widget" style="top: 15px; left: 15px; color: #00ff00; border-left-color: #00ff00;">FPS: 60</div>
+    <div id="killCounterDisplay" class="hud-widget" style="top: 15px; right: 15px; color: #ff3333; border-left-color: #ff3333;">💀 Kills: 0</div>
+    <div id="bossTimerDisplay" class="hud-widget" style="top: 65px; right: 15px; color: #e040fb; border-left-color: #e040fb;">👹 Boss: 03:00</div>
     
 </head>
 <body>
-    <canvas id="minimapCanvas" width="200" height="200"></canvas>
+    <canvas id="bgCanvas" style="position: fixed; top: 0; left: 0; width: 100%; height: 100%; z-index: -1;"></canvas>
+    
+    <!-- Minimap Container with Radar Effect -->
+    <div style="position: fixed; bottom: 20px; right: 20px; z-index: 1000; width: 200px; height: 200px; border-radius: 8px; border: 2px solid rgba(0, 255, 255, 0.5); box-shadow: 0 0 20px rgba(0, 255, 255, 0.2); background: #000; overflow: hidden;">
+        <canvas id="minimapCanvas" width="200" height="200" style="position: absolute; top: 0; left: 0;"></canvas>
+        <div class="radar-sweep"></div>
+    </div>
+
+    <!-- Hearts Container (Next to Minimap) -->
+    <div id="heartsContainer" style="position: fixed; bottom: 25px; right: 240px; z-index: 1000; display: flex; gap: 2px; filter: drop-shadow(0 0 5px rgba(255, 50, 50, 0.5));"></div>
+    
     <div class="main-layout">
         <!-- Stats Bar (Structured Grid Layout) -->
-        <div class="stats-bar">
+        <div class="stats-bar" style="background: linear-gradient(180deg, rgba(30, 40, 60, 0.9), rgba(20, 25, 40, 0.9)); border: 1px solid rgba(255, 255, 255, 0.1); border-bottom: 2px solid rgba(0, 255, 255, 0.3); border-radius: 0 0 20px 20px; padding: 15px 30px; margin-bottom: 20px; backdrop-filter: blur(12px); box-shadow: 0 10px 40px rgba(0,0,0,0.6); width: 100%; max-width: 900px;">
             
             <!-- Left Group: Score & High Score -->
             <div style="display: flex; flex-direction: column; gap: 20px; flex: 1;">
@@ -96,7 +150,6 @@
                 <button id="rebirthMenuBtn" class="btn-menu-item" style="background: linear-gradient(45deg, #d500f9, #aa00ff);">🌀 Rebirth</button>
                 <button id="guideBtn" class="btn-menu-item" style="background: linear-gradient(45deg, #9c27b0, #e040fb);">📜 Guide</button>
                 <button id="settingsBtn" class="btn-menu-item" style="background: linear-gradient(45deg, #607d8b, #78909c);">⚙️ Settings</button>
-                <button id="resetBtn" class="btn-menu-item btn-reset" style="font-size: 18px;">🗑️ Reset</button>
             </div>
         </div>
 
@@ -145,16 +198,18 @@
                         <button id="langEnBtn" style="flex: 1; font-size: 18px;">English</button>
                         <button id="langArBtn" style="flex: 1; font-size: 18px;">العربية</button>
                     </div>
+                    <!-- زر إعادة التعيين تم نقله هنا للأمان -->
+                    <button id="resetBtn" class="btn-menu-item btn-reset" style="font-size: 18px; background: linear-gradient(45deg, #d32f2f, #f44336); margin-top: 10px;">🗑️ Reset Data</button>
                     <button id="closeSettingsBtn" class="btn-close">❌ Close</button>
                 </div>
             </div>
         </div>
         </div>
 
-        <div style="width: 95%; max-width: 1200px; margin-top: 15px; display: flex; align-items: center; gap: 15px; box-sizing: border-box; text-shadow: 0 2px 5px rgba(0,0,0,0.8);">
-            <span id="lblProgress" style="white-space: nowrap; font-weight: bold; color: #ff9800;">Next Evolution</span>
-            <div class="xp-track" style="margin: 0; flex-grow: 1; background: #333;">
-                <div id="progressFill" style="height: 100%; background: linear-gradient(90deg, #ff9800, #ff5722); width: 0%; transition: width 0.3s;"></div>
+        <div style="width: 100%; max-width: 800px; margin-top: 15px; display: flex; align-items: center; gap: 15px; box-sizing: border-box; background: rgba(10, 15, 25, 0.8); padding: 12px 25px; border-radius: 50px; border: 1px solid rgba(255, 152, 0, 0.3); box-shadow: 0 5px 20px rgba(0,0,0,0.4);">
+            <span id="lblProgress" style="white-space: nowrap; font-weight: bold; color: #ff9800; font-family: 'Segoe UI', sans-serif; letter-spacing: 1px;">EVOLUTION</span>
+            <div class="xp-track" style="margin: 0; flex-grow: 1; background: rgba(0, 0, 0, 0.5); height: 12px; border-radius: 6px; overflow: hidden; border: 1px solid rgba(255, 255, 255, 0.1);">
+                <div id="progressFill" style="height: 100%; background: linear-gradient(90deg, #ff9800, #ff3d00); width: 0%; transition: width 0.3s; box-shadow: 0 0 10px #ff9800;"></div>
             </div>
             <span id="progressText" style="white-space: nowrap; font-family: monospace; color: #ccc;">1/50</span>
         </div>
@@ -171,6 +226,8 @@
  <script src="js/ResetLayer.js"></script>
  <script src="js/Projectile.js"></script>
  <script src="js/AiSnake.js"></script>
+ <script src="js/input.js"></script>
+ <script src="js/renderer.js"></script>
  
  <!-- منطق اللعبة والتشغيل -->
  <script src="js/game.js"></script>

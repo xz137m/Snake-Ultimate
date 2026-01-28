@@ -6,13 +6,16 @@ function openRebirth() {
 
 function calculateRebirthPoints() {
     if (coins < 10000) return 0;
-    return Math.floor(Math.sqrt(coins) / 100);
+    let base = Math.floor(Math.sqrt(coins) / 100);
+    let slayerRPMult = (1 + (slayerUpgrades.rp1 || 0) * 0.05) * (1 + (slayerUpgrades.rp2 || 0) * 0.10);
+    let mult = (1 + (prestigeUpgrades.permRP1 || 0) * 0.05) * (1 + (prestigeUpgrades.permRP2 || 0) * 0.10) * slayerRPMult;
+    return Math.floor(base * mult);
 }
 
 function performRebirth() {
     let earnedRP = calculateRebirthPoints();
     if (earnedRP <= 0) return;
-    if (confirm(TRANSLATIONS[currentLanguage].confirmRebirth)) {
+    showConfirmation(TRANSLATIONS[currentLanguage].confirmRebirth, () => {
         try {
             rebirthPoints += earnedRP;
             coins = 0;
@@ -40,7 +43,7 @@ function performRebirth() {
         } finally {
             window.hidePanel('rebirth-overlay');
         }
-    }
+    });
 }
 
 function buyPrestigeUpgrade(id) {
@@ -53,6 +56,29 @@ function buyPrestigeUpgrade(id) {
         updateScore();
         renderRebirthShop();
         playSound('eat');
+        showNotification(`🌀 Prestige Upgrade Acquired!`, 'success');
+    }
+}
+
+function buyMaxPrestigeUpgrade(id) {
+    let bought = 0;
+    while(true) {
+        let cost = Math.floor(10 * Math.pow(1.5, prestigeUpgrades[id]));
+        if (rebirthPoints >= cost) {
+            rebirthPoints -= cost;
+            prestigeUpgrades[id]++;
+            bought++;
+        } else {
+            break;
+        }
+    }
+    if (bought > 0) {
+        localStorage.setItem('snakeRP', rebirthPoints);
+        localStorage.setItem('snakePrestigeUpgrades', JSON.stringify(prestigeUpgrades));
+        updateScore();
+        renderRebirthShop();
+        playSound('eat');
+        showNotification(`🌀 Max Upgrades Purchased!`, 'success');
     }
 }
 
@@ -65,13 +91,21 @@ function renderRebirthShop() {
     document.getElementById('rpShopDisplay').innerText = window.formatNumber(rebirthPoints);
     const items = [
         { id: 'permScore', name: t.permScore, desc: t.permScoreDesc, level: prestigeUpgrades.permScore },
-        { id: 'permXp', name: t.permXp, desc: t.permXpDesc, level: prestigeUpgrades.permXp }
+        { id: 'permXp', name: t.permXp, desc: t.permXpDesc, level: prestigeUpgrades.permXp },
+        { id: 'permRP1', name: t.permRP1, desc: t.permRP1Desc, level: prestigeUpgrades.permRP1 },
+        { id: 'permRP2', name: t.permRP2, desc: t.permRP2Desc, level: prestigeUpgrades.permRP2 },
+        { id: 'permSouls1', name: t.permSouls1, desc: t.permSouls1Desc, level: prestigeUpgrades.permSouls1 },
+        { id: 'permSouls2', name: t.permSouls2, desc: t.permSouls2Desc, level: prestigeUpgrades.permSouls2 }
     ];
     items.forEach(item => {
         let dynamicInfo = '';
         let bonusVal = '';
         if (item.id === 'permScore') bonusVal = `+${item.level * 10}%`;
         else if (item.id === 'permXp') bonusVal = `+${item.level * 10}%`;
+        else if (item.id === 'permRP1') bonusVal = `+${item.level * 5}%`;
+        else if (item.id === 'permRP2') bonusVal = `+${item.level * 10}%`;
+        else if (item.id === 'permSouls1') bonusVal = `+${item.level * 5}%`;
+        else if (item.id === 'permSouls2') bonusVal = `+${item.level * 10}%`;
 
         if (bonusVal) {
              dynamicInfo = `<br><span style="color: #00ff00; font-weight: bold; font-size: 0.9em;">${t.currentBonus} ${bonusVal}</span>`;
@@ -85,9 +119,14 @@ function renderRebirthShop() {
             <h3 style="color: #e040fb">${item.name}</h3>
             <p>${item.desc}${dynamicInfo}</p>
             <p>Lvl: ${item.level}</p>
-            <button onclick="window.buyPrestigeUpgrade('${item.id}')" ${rebirthPoints < cost ? 'disabled style="opacity:0.5"' : ''}>
-                ${t.buy} (${window.formatNumber(cost)} RP)
-            </button>
+            <div class="shop-buttons">
+                <button onclick="window.buyPrestigeUpgrade('${item.id}')" ${rebirthPoints < cost ? 'disabled style="opacity:0.5"' : ''}>
+                    ${t.buy} (${window.formatNumber(cost)} RP)
+                </button>
+                <button class="btn-max" onclick="window.buyMaxPrestigeUpgrade('${item.id}')" ${rebirthPoints < cost ? 'disabled style="opacity:0.5"' : ''}>
+                    MAX
+                </button>
+            </div>
         `;
         container.appendChild(div);
     });
@@ -97,3 +136,4 @@ function renderRebirthShop() {
 window.openRebirth = openRebirth;
 window.performRebirth = performRebirth;
 window.buyPrestigeUpgrade = buyPrestigeUpgrade;
+window.buyMaxPrestigeUpgrade = buyMaxPrestigeUpgrade;

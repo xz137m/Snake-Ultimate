@@ -29,6 +29,16 @@ class Projectile {
     draw(ctx) {
         const cx = this.x * GRID_SIZE + GRID_SIZE / 2;
         const cy = this.y * GRID_SIZE + GRID_SIZE / 2;
+
+        // تحسين الأداء: التحقق مما إذا كانت القذيفة داخل حدود العرض الحالية للكاميرا
+        // نستخدم المتغيرات العامة للكاميرا والقماش المعرفة في state.js/main.js
+        if (typeof camera !== 'undefined' && typeof canvas !== 'undefined') {
+            const margin = 200; // هامش كبير لأن الذيل قد يكون طويلاً
+            if (cx < camera.x - margin || cx > camera.x + canvas.width + margin ||
+                cy < camera.y - margin || cy > camera.y + canvas.height + margin) {
+                return; // لا ترسم إذا كانت بعيدة جداً
+            }
+        }
         
         // --- رسم الذيل الدخاني (Smoke Trail) ---
         ctx.save();

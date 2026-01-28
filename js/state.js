@@ -2,6 +2,7 @@
 var snake = [];
 var particles = [];
 var foods = [];
+var floatingTexts = [];
 var projectiles = [];
 var aiSnakes = [];
 var velocity = { x: 0, y: 0 };
@@ -38,6 +39,7 @@ var isExhausted = false; // هل اللاعب مرهق؟
 var staminaRegenTimestamp = 0; // متى يبدأ الشحن؟
 var isPlayerInvulnerable = false; // هل اللاعب في وضع الحماية؟
 var playerInvulnerabilityTime = 0; // وقت بدء الحماية
+var shakeEndTime = 0; // متغير لاهتزاز الشاشة
 
 var soundEnabled = localStorage.getItem('snakeSound') !== 'false';
 var particlesEnabled = localStorage.getItem('snakeParticles') !== 'false';
@@ -69,9 +71,20 @@ if (typeof upgrades.soulsMult === 'undefined') upgrades.soulsMult = 0;
 if (typeof upgrades.soulsExp === 'undefined') upgrades.soulsExp = 0;
 if (typeof prestigeUpgrades.permScore === 'undefined') prestigeUpgrades.permScore = 0;
 if (typeof prestigeUpgrades.permXp === 'undefined') prestigeUpgrades.permXp = 0;
+if (typeof prestigeUpgrades.permRP1 === 'undefined') prestigeUpgrades.permRP1 = 0;
+if (typeof prestigeUpgrades.permRP2 === 'undefined') prestigeUpgrades.permRP2 = 0;
+if (typeof prestigeUpgrades.permSouls1 === 'undefined') prestigeUpgrades.permSouls1 = 0;
+if (typeof prestigeUpgrades.permSouls2 === 'undefined') prestigeUpgrades.permSouls2 = 0;
 if (typeof slayerUpgrades.maxHearts === 'undefined') slayerUpgrades.maxHearts = 0;
 if (typeof slayerUpgrades.maxStamina === 'undefined') slayerUpgrades.maxStamina = 0;
 if (typeof slayerUpgrades.staminaRegen === 'undefined') slayerUpgrades.staminaRegen = 0;
+if (typeof slayerUpgrades.gold1 === 'undefined') slayerUpgrades.gold1 = 0;
+if (typeof slayerUpgrades.gold2 === 'undefined') slayerUpgrades.gold2 = 0;
+if (typeof slayerUpgrades.rp1 === 'undefined') slayerUpgrades.rp1 = 0;
+if (typeof slayerUpgrades.rp2 === 'undefined') slayerUpgrades.rp2 = 0;
+if (typeof slayerUpgrades.souls1 === 'undefined') slayerUpgrades.souls1 = 0;
+if (typeof slayerUpgrades.souls2 === 'undefined') slayerUpgrades.souls2 = 0;
+if (typeof slayerUpgrades.infiniteStamina === 'undefined') slayerUpgrades.infiniteStamina = 0;
 
 // HTML Elements (will be assigned in main.js)
 var canvas, ctx, minimapCanvas, minimapCtx, scoreElement, highScoreElement, coinsElement, rpElement, levelElement;

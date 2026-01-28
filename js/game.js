@@ -1,17 +1,17 @@
 let autoSaveInterval;
-let shakeEndTime = 0; // متغير لاهتزاز الشاشة
 let timeSinceWorldUpdate = 0; // مؤقت لتحديث العالم (الأعداء)
 
 function resetGameProgress() {
-    if(confirm(TRANSLATIONS[currentLanguage].confirmReset)) {
+    showConfirmation(TRANSLATIONS[currentLanguage].confirmReset, () => {
         localStorage.clear();
         location.reload();
-    }
+    });
 }
 
 function initGame() {
     snake = [{ x: Math.floor(TILE_COUNT_X / 2), y: Math.floor(TILE_COUNT_Y / 2) }];
     particles = [];
+    floatingTexts = [];
     foods = [];
     projectiles = [];
     aiSnakes = []; // تهيئة مصفوفة الأعداء
@@ -209,6 +209,9 @@ function updateSnake(movePlayer, moveWorld) {
                             ai.die();
                             enemiesKilled++;
                             
+                            // تفعيل موجة صدمة عند موقع موت العدو
+                            createShockwave(aiHead.x * GRID_SIZE + GRID_SIZE/2, aiHead.y * GRID_SIZE + GRID_SIZE/2, ai.headColor);
+                            
                             // Gain Souls
                             let soulsGain = ai.isBoss ? 50 : 5;
                             
@@ -216,7 +219,10 @@ function updateSnake(movePlayer, moveWorld) {
                             let sMult = 1 + (upgrades.soulsMult * 0.05); // زيادة 5% لكل مستوى
                             let lvl = upgrades.soulsExp;
                             let sFlat = lvl * Math.pow(2, Math.floor(lvl / 10)); // الحسبة الجديدة: المستوى * المضاعف
-                            soulsGain = Math.floor(soulsGain * sMult) + sFlat;
+                            let prestigeSoulsMult = (1 + (prestigeUpgrades.permSouls1 || 0) * 0.05) * (1 + (prestigeUpgrades.permSouls2 || 0) * 0.10);
+                            let slayerSoulsMult = (1 + (slayerUpgrades.souls1 || 0) * 0.05) * (1 + (slayerUpgrades.souls2 || 0) * 0.10);
+                            
+                            soulsGain = Math.floor(soulsGain * sMult * prestigeSoulsMult * slayerSoulsMult) + sFlat;
 
                             souls += soulsGain;
                             localStorage.setItem('snakeSouls', souls);
@@ -225,8 +231,12 @@ function updateSnake(movePlayer, moveWorld) {
                             
                             // مكافآت القتل
                             let rewardMult = ai.isBoss ? 25 : 1; // الزعيم يعطي مكافأة قتل ضخمة
+                            let slayerGoldMult = (1 + (slayerUpgrades.gold1 || 0) * 0.05) * (1 + (slayerUpgrades.gold2 || 0) * 0.10);
                             score += 500 * rewardMult;
-                            coins += 100 * rewardMult;
+                            let goldGained = Math.floor(100 * rewardMult * slayerGoldMult);
+                            coins += goldGained;
+                            createFloatingText(aiHead.x * GRID_SIZE, aiHead.y * GRID_SIZE, `+${formatNumber(goldGained)} Gold`, '#ffd700');
+                            createFloatingText(aiHead.x * GRID_SIZE, aiHead.y * GRID_SIZE - 20, `+${formatNumber(50 * rewardMult)} XP`, '#00ffff');
                             currentXp += 50 * rewardMult;
                             updateScore(); // تحديث الواجهة فوراً
                             
@@ -235,7 +245,8 @@ function updateSnake(movePlayer, moveWorld) {
                             // العدو تضرر فقط (الزعيم)
                             let rewardMult = 5; // مكافأة ضربة
                             score += 500 * rewardMult;
-                            coins += 100 * rewardMult;
+                            let goldGained = Math.floor(100 * rewardMult * slayerGoldMult);
+                            coins += goldGained;
                             currentXp += 50 * rewardMult;
                             
                             // تفعيل الحماية والمؤقت
@@ -313,20 +324,26 @@ function updateSnake(movePlayer, moveWorld) {
         if (eatenIndex !== -1) {
             let fruit = FRUIT_TYPES[foods[eatenIndex].type];
             let prestigeMult = Math.pow(2, prestigeLevel);
-            let shopMult = (1 + Math.min(upgrades.doublePoints, 300) * 0.01);
+            let dpLvl = upgrades.doublePoints;
+            let shopMult = (dpLvl === 0) ? 1 : dpLvl * Math.pow(2, Math.floor(dpLvl / 10));
             let levelMult = Math.pow(2, playerLevel - 1);
-            let xpUpgradeMult = (1 + Math.min(upgrades.xpMult, 300) * 0.01);
+            let xpUpgradeMult = (1 + Math.min(upgrades.xpMult, 250) * 0.01);
             let permScoreMult = (1 + (prestigeUpgrades.permScore || 0) * 0.1);
             let permXpMult = (1 + (prestigeUpgrades.permXp || 0) * 0.1);
-            let scoreUpgrade = (1 + Math.min(upgrades.scoreMult, 300) * 0.01);
-            let points = (fruit.points * scoreUpgrade) * shopMult * prestigeMult * levelMult * permScoreMult;
-            let gold = (fruit.gold * scoreUpgrade) * shopMult * prestigeMult * levelMult * permScoreMult;
+            let scoreUpgrade = (1 + Math.min(upgrades.scoreMult, 250) * 0.01);
+            let slayerGoldMult = (1 + (slayerUpgrades.gold1 || 0) * 0.05) * (1 + (slayerUpgrades.gold2 || 0) * 0.10);
+            let points = (fruit.points * scoreUpgrade) * shopMult * prestigeMult * levelMult * permScoreMult * slayerGoldMult;
+            let gold = (fruit.gold * scoreUpgrade) * shopMult * prestigeMult * levelMult * permScoreMult * slayerGoldMult;
             let xpGain = fruit.xp * prestigeMult * xpUpgradeMult * permXpMult;
             score += Math.floor(points);
-            coins += Math.floor(gold);
+            let goldGained = Math.floor(gold);
+            coins += goldGained;
+            if (goldGained > 0) createFloatingText(foods[eatenIndex].x * GRID_SIZE, foods[eatenIndex].y * GRID_SIZE, `+${formatNumber(goldGained)} Gold`, '#ffd700');
             let currentCap = getCurrentLevelCap();
             if (playerLevel < currentCap) {
-                currentXp += Math.floor(xpGain);
+                let xpGained = Math.floor(xpGain);
+                currentXp += xpGained;
+                if (xpGained > 0) createFloatingText(foods[eatenIndex].x * GRID_SIZE, foods[eatenIndex].y * GRID_SIZE - 20, `+${formatNumber(xpGained)} XP`, '#00ffff');
                 let xpNeeded = Math.floor(100 * Math.pow(1.2, playerLevel - 1));
                 if (currentXp >= xpNeeded) {
                     currentXp -= xpNeeded;
@@ -421,25 +438,32 @@ function runGameLoop(timestamp) {
         const maxStamina = 100 + (slayerUpgrades.maxStamina * 20);
         const regenRate = 0.2 + (slayerUpgrades.staminaRegen * 0.05); // Base 0.2 per frame
         
-        // الجري يستهلك طاقة ويؤخر الشحن
-        if (isSprinting && !isExhausted && currentStamina > 0) {
-            currentStamina -= 1; // Drain
-            staminaRegenTimestamp = Date.now() + 1000; // كول داون: انتظر ثانية قبل بدء الشحن
-            
-            if (currentStamina <= 0) {
-                currentStamina = 0;
-                isExhausted = true; // عقوبة: اللاعب مرهق
-            }
+        // التحقق من تطويرة الطاقة اللانهائية
+        if (slayerUpgrades.infiniteStamina > 0) {
+            currentStamina = maxStamina;
+            isExhausted = false;
+            // الجري مسموح دائماً ولا يستهلك طاقة
         } else {
-            // الشحن يبدأ فقط بعد انتهاء الكول داون
-            if (Date.now() > staminaRegenTimestamp && currentStamina < maxStamina) {
-                currentStamina += regenRate;
-                if (currentStamina > maxStamina) currentStamina = maxStamina;
-            }
-            
-            // إزالة الإرهاق إذا شحن اللاعب 25% من طاقته
-            if (isExhausted && currentStamina > (maxStamina * 0.25)) {
-                isExhausted = false;
+            // الجري يستهلك طاقة ويؤخر الشحن
+            if (isSprinting && !isExhausted && currentStamina > 0) {
+                currentStamina -= 1; // Drain
+                staminaRegenTimestamp = Date.now() + 1000; // كول داون: انتظر ثانية قبل بدء الشحن
+                
+                if (currentStamina <= 0) {
+                    currentStamina = 0;
+                    isExhausted = true; // عقوبة: اللاعب مرهق
+                }
+            } else {
+                // الشحن يبدأ فقط بعد انتهاء الكول داون
+                if (Date.now() > staminaRegenTimestamp && currentStamina < maxStamina) {
+                    currentStamina += regenRate;
+                    if (currentStamina > maxStamina) currentStamina = maxStamina;
+                }
+                
+                // إزالة الإرهاق إذا شحن اللاعب 25% من طاقته
+                if (isExhausted && currentStamina > (maxStamina * 0.25)) {
+                    isExhausted = false;
+                }
             }
         }
         updateStaminaBar();
@@ -476,8 +500,10 @@ function runGameLoop(timestamp) {
 
     // --- الرسم وتحديث الواجهة (يعمل دائماً) ---
     updateParticles();
+    updateFloatingTexts();
     draw(); // الرسم الرئيسي
-    drawMinimap(); // رسم الخريطة
+    // تحسين الأداء: تحديث الخريطة المصغرة مرة كل 3 إطارات (20 FPS) بدلاً من 60
+    if (frameCount % 3 === 0) drawMinimap();
 
     // حساب FPS
     frameCount++;
@@ -524,253 +550,6 @@ function saveGame() {
 window.addEventListener('beforeunload', () => {
     saveGame();
 });
-
-function updateParticles() {
-    for (let i = particles.length - 1; i >= 0; i--) {
-        let p = particles[i];
-        p.x += p.vx;
-        p.y += p.vy;
-        p.life -= 0.04;
-        if (p.life <= 0) particles.splice(i, 1);
-    }
-}
-
-function updateCamera() {
-    if (snake.length === 0) return;
-    const head = snake[0];
-    const targetX = head.x * GRID_SIZE - canvas.width / 2 + GRID_SIZE / 2;
-    const targetY = head.y * GRID_SIZE - canvas.height / 2 + GRID_SIZE / 2;
-    camera.x = targetX;
-    camera.y = targetY;
-}
-
-function draw() {
-    // حماية ضد الشاشة السوداء: التأكد من وجود سياق الرسم
-    if (!ctx || !canvas) return;
-
-    ctx.fillStyle = COLORS.BACKGROUND;
-    ctx.fillRect(0, 0, canvas.width, canvas.height);
-    ctx.filter = `brightness(${brightnessLevel})`;
-    
-    // اهتزاز الشاشة
-    ctx.save();
-    if (Date.now() < shakeEndTime) {
-        const dx = (Math.random() - 0.5) * 10;
-        const dy = (Math.random() - 0.5) * 10;
-        ctx.translate(dx, dy);
-    }
-
-    updateCamera();
-    ctx.save();
-    ctx.translate(-camera.x, -camera.y);
-    ctx.strokeStyle = COLORS.GRID;
-    ctx.lineWidth = 0.5;
-    ctx.beginPath();
-    const startX = Math.floor(camera.x / GRID_SIZE) * GRID_SIZE - GRID_SIZE;
-    const endX = startX + canvas.width + GRID_SIZE * 2;
-    const startY = Math.floor(camera.y / GRID_SIZE) * GRID_SIZE - GRID_SIZE;
-    const endY = startY + canvas.height + GRID_SIZE * 2;
-    for (let x = startX; x <= endX; x += GRID_SIZE) {
-        ctx.moveTo(x, startY);
-        ctx.lineTo(x, endY);
-    }
-    for (let y = startY; y <= endY; y += GRID_SIZE) {
-        ctx.moveTo(startX, y);
-        ctx.lineTo(endX, y);
-    }
-    ctx.stroke();
-    ctx.strokeStyle = 'rgba(255, 0, 0, 0.5)';
-    ctx.lineWidth = 5;
-    ctx.strokeRect(0, 0, TILE_COUNT_X * GRID_SIZE, TILE_COUNT_Y * GRID_SIZE);
-    if (showEatRange && upgrades.eatRange > 0 && snake.length > 0) {
-        const head = snake[0];
-        const range = upgrades.eatRange;
-        let rx, ry, rw, rh;
-        if (velocity.x === 1) { rx = (head.x + 1) * GRID_SIZE; ry = (head.y - range) * GRID_SIZE; rw = range * GRID_SIZE; rh = (range * 2 + 1) * GRID_SIZE; }
-        else if (velocity.x === -1) { rx = (head.x - range) * GRID_SIZE; ry = (head.y - range) * GRID_SIZE; rw = range * GRID_SIZE; rh = (range * 2 + 1) * GRID_SIZE; }
-        else if (velocity.y === 1) { rx = (head.x - range) * GRID_SIZE; ry = (head.y + 1) * GRID_SIZE; rw = (range * 2 + 1) * GRID_SIZE; rh = range * GRID_SIZE; }
-        else if (velocity.y === -1) { rx = (head.x - range) * GRID_SIZE; ry = (head.y - range) * GRID_SIZE; rw = (range * 2 + 1) * GRID_SIZE; rh = range * GRID_SIZE; }
-        ctx.save();
-        ctx.strokeStyle = 'rgba(0, 255, 255, 0.4)';
-        ctx.lineWidth = 2;
-        ctx.setLineDash([5, 5]);
-        ctx.strokeRect(rx, ry, rw, rh);
-        ctx.restore();
-    }
-    foods.forEach(f => {
-        const type = FRUIT_TYPES[f.type];
-        ctx.fillStyle = type.color;
-        ctx.shadowColor = glowEnabled ? type.glow : 'transparent';
-        ctx.shadowBlur = glowEnabled ? 15 : 0;
-        ctx.beginPath();
-        ctx.arc(f.x * GRID_SIZE + GRID_SIZE/2, f.y * GRID_SIZE + GRID_SIZE/2, GRID_SIZE/2 - 2, 0, Math.PI * 2);
-        ctx.fill();
-        ctx.shadowBlur = 0;
-    });
-    particles.forEach(p => {
-        ctx.globalAlpha = p.life;
-        ctx.fillStyle = p.color;
-        ctx.beginPath();
-        ctx.arc(p.x, p.y, 3, 0, Math.PI * 2);
-        ctx.fill();
-    });
-    ctx.globalAlpha = 1.0;
-    const unlockedColors = PRESTIGE_COLORS.filter(c => playerLevel >= c.reqLevel);
-    // تثبيت اللون عند الوصول لآخر تطور بدلاً من التكرار
-    let colorIndex = prestigeLevel;
-    if (colorIndex >= unlockedColors.length) {
-        colorIndex = unlockedColors.length - 1;
-    }
-    const currentColors = unlockedColors[colorIndex];
-
-    // تأثير بصري لحماية اللاعب (وميض/شفافية)
-    if (typeof isPlayerInvulnerable !== 'undefined' && isPlayerInvulnerable) {
-        ctx.globalAlpha = 0.5 + Math.sin(Date.now() / 100) * 0.3;
-    }
-
-    snake.forEach((part, index) => {
-        const x = part.x * GRID_SIZE;
-        const y = part.y * GRID_SIZE;
-        if (index === 0) {
-            ctx.fillStyle = currentColors.head;
-            ctx.shadowColor = glowEnabled ? currentColors.head : 'transparent';
-            ctx.shadowBlur = glowEnabled ? 10 : 0;
-            ctx.fillRect(x, y, GRID_SIZE, GRID_SIZE);
-            ctx.shadowBlur = 0;
-            ctx.fillStyle = 'black';
-            const eyeSize = 4;
-            if (velocity.x === 1) { ctx.fillRect(x + 12, y + 4, eyeSize, eyeSize); ctx.fillRect(x + 12, y + 12, eyeSize, eyeSize); }
-            else if (velocity.x === -1) { ctx.fillRect(x + 4, y + 4, eyeSize, eyeSize); ctx.fillRect(x + 4, y + 12, eyeSize, eyeSize); }
-            else if (velocity.y === -1) { ctx.fillRect(x + 4, y + 4, eyeSize, eyeSize); ctx.fillRect(x + 12, y + 4, eyeSize, eyeSize); }
-            else { ctx.fillRect(x + 4, y + 12, eyeSize, eyeSize); ctx.fillRect(x + 12, y + 12, eyeSize, eyeSize); }
-        } else {
-            ctx.fillStyle = currentColors.body;
-            ctx.fillRect(x + 1, y + 1, GRID_SIZE - 2, GRID_SIZE - 2);
-        }
-    });
-
-    // إعادة الشفافية للوضع الطبيعي لباقي العناصر
-    ctx.globalAlpha = 1.0;
-
-    // رسم الأعداء (AI Snakes)
-    aiSnakes.forEach(ai => {
-        ai.draw(ctx);
-    });
-
-    // رسم المقذوفات في النهاية لتظهر فوق الجميع
-    projectiles.forEach(p => {
-        p.draw(ctx);
-    });
-
-    ctx.restore();
-    ctx.restore(); // استعادة حالة الاهتزاز
-    ctx.filter = 'none';
-    if (isPaused) {
-        ctx.fillStyle = "rgba(0, 0, 0, 0.5)";
-        ctx.fillRect(0, 0, canvas.width, canvas.height);
-        ctx.fillStyle = "white";
-        ctx.font = "bold 40px Arial";
-        ctx.textAlign = "center";
-        ctx.fillText(TRANSLATIONS[currentLanguage].paused, canvas.width / 2, canvas.height / 2);
-    }
-}
-
-function drawMinimap() {
-    if (!minimapCtx || !minimapCanvas) return;
-    
-    // مسح الخريطة القديمة
-    minimapCtx.clearRect(0, 0, minimapCanvas.width, minimapCanvas.height);
-    
-    // حساب نسبة التصغير بناءً على حجم الخريطة الحالي
-    const scaleX = minimapCanvas.width / TILE_COUNT_X;
-    const scaleY = minimapCanvas.height / TILE_COUNT_Y;
-
-    // رسم الطعام (نقاط ملونة)
-    foods.forEach(f => {
-        const type = FRUIT_TYPES[f.type];
-        minimapCtx.fillStyle = type.color;
-        // رسم نقطة بحجم لا يقل عن 2 بكسل لتكون واضحة
-        minimapCtx.fillRect(f.x * scaleX, f.y * scaleY, Math.max(scaleX, 3), Math.max(scaleY, 3));
-    });
-
-    // رسم الثعبان
-    minimapCtx.fillStyle = '#00ff88'; // لون موحد للثعبان في الخريطة للوضوح
-    snake.forEach(p => {
-        minimapCtx.fillRect(p.x * scaleX, p.y * scaleY, Math.max(scaleX, 2), Math.max(scaleY, 2));
-    });
-
-    // رسم الأعداء في الخريطة المصغرة (باللون الأحمر)
-    minimapCtx.fillStyle = '#ff3333';
-    aiSnakes.forEach(ai => {
-        ai.body.forEach(p => {
-            minimapCtx.fillRect(p.x * scaleX, p.y * scaleY, Math.max(scaleX, 2), Math.max(scaleY, 2));
-        });
-    });
-
-    // رسم المقذوفات في الخريطة
-    minimapCtx.fillStyle = '#ab47bc';
-    projectiles.forEach(p => {
-        minimapCtx.fillRect(p.x * scaleX, p.y * scaleY, 2, 2);
-    });
-
-    // رسم سهم الاتجاه عند الرأس
-    if (snake.length > 0) {
-        const head = snake[0];
-        // حساب مركز الرأس في الخريطة المصغرة
-        const cx = head.x * scaleX + (Math.max(scaleX, 2) / 2);
-        const cy = head.y * scaleY + (Math.max(scaleY, 2) / 2);
-        const size = 4; // حجم السهم
-
-        minimapCtx.fillStyle = '#ffffff';
-        minimapCtx.beginPath();
-        if (velocity.x === 1) { // يمين
-            minimapCtx.moveTo(cx - size, cy - size);
-            minimapCtx.lineTo(cx + size, cy);
-            minimapCtx.lineTo(cx - size, cy + size);
-        } else if (velocity.x === -1) { // يسار
-            minimapCtx.moveTo(cx + size, cy - size);
-            minimapCtx.lineTo(cx - size, cy);
-            minimapCtx.lineTo(cx + size, cy + size);
-        } else if (velocity.y === 1) { // تحت
-            minimapCtx.moveTo(cx - size, cy - size);
-            minimapCtx.lineTo(cx, cy + size);
-            minimapCtx.lineTo(cx + size, cy - size);
-        } else if (velocity.y === -1) { // فوق
-            minimapCtx.moveTo(cx - size, cy + size);
-            minimapCtx.lineTo(cx, cy - size);
-            minimapCtx.lineTo(cx + size, cy + size);
-        }
-        minimapCtx.fill();
-    }
-
-}
-
-function handleKeyPress(e) {
-    if (e.repeat) return;
-    
-    // منع زر المسافة من تفعيل أزرار القوائم (مثل Play/Reset)
-    if (e.code === 'Space') e.preventDefault();
-
-    switch(e.code) {
-        case 'ArrowUp': case 'KeyW': if (velocity.y !== 1) nextVelocity = { x: 0, y: -1 }; break;
-        case 'ArrowDown': case 'KeyS': if (velocity.y !== -1) nextVelocity = { x: 0, y: 1 }; break;
-        case 'ArrowLeft': case 'KeyA': if (velocity.x !== 1) nextVelocity = { x: -1, y: 0 }; break;
-        case 'ArrowRight': case 'KeyD': if (velocity.x !== -1) nextVelocity = { x: 1, y: 0 }; break;
-        case 'Space': if (!isGameOver) isPaused = !isPaused; break;
-    }
-}
-
-function handleSwipe(startX, startY, endX, endY) {
-    const diffX = endX - startX;
-    const diffY = endY - startY;
-    if (Math.abs(diffX) > Math.abs(diffY)) {
-        if (diffX > 0 && velocity.x !== -1) nextVelocity = { x: 1, y: 0 };
-        else if (diffX < 0 && velocity.x !== 1) nextVelocity = { x: -1, y: 0 };
-    } else {
-        if (diffY > 0 && velocity.y !== -1) nextVelocity = { x: 0, y: 1 };
-        else if (diffY < 0 && velocity.y !== 1) nextVelocity = { x: 0, y: -1 };
-    }
-}
 
 // --- تصدير الدوال للنطاق العام ---
 window.resetGameProgress = resetGameProgress;

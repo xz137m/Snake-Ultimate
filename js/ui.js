@@ -109,11 +109,14 @@ function updateHearts() {
     const totalHearts = 1 + slayerUpgrades.maxHearts;
     
     for (let i = 0; i < totalHearts; i++) {
-        const heart = document.createElement('span');
-        heart.style.fontSize = '24px';
-        // If index is less than currentHearts, it's red, else gray
-        heart.innerText = '❤️';
-        heart.style.filter = i < currentHearts ? 'none' : 'grayscale(100%) brightness(0.5)';
+        const heart = document.createElement('div');
+        heart.className = 'heart-block'; // استخدام كلاس للتنسيق من CSS
+        // تنسيق الحالة (ممتلئ/فارغ)
+        const isActive = i < currentHearts;
+        heart.style.background = isActive ? 'linear-gradient(135deg, #ff3333, #ff1111)' : 'rgba(30, 30, 30, 0.6)';
+        heart.style.boxShadow = isActive ? '0 0 8px #ff3333' : 'none';
+        heart.style.borderColor = isActive ? '#ffaaaa' : '#444';
+        
         container.appendChild(heart);
     }
 }
@@ -294,22 +297,219 @@ function renderGuideItems() {
     });
 }
 
+function showNotification(text, type = 'success') {
+    let container = document.getElementById('notification-container');
+    if (!container) {
+        container = document.createElement('div');
+        container.id = 'notification-container';
+        Object.assign(container.style, {
+            position: 'fixed',
+            top: '20px',
+            left: '50%',
+            transform: 'translateX(-50%)',
+            zIndex: '2000',
+            display: 'flex',
+            flexDirection: 'column',
+            gap: '10px',
+            pointerEvents: 'none'
+        });
+        document.body.appendChild(container);
+    }
+
+    const notif = document.createElement('div');
+    notif.innerHTML = text;
+    
+    // تصميم الإشعار (Glassmorphism)
+    Object.assign(notif.style, {
+        padding: '12px 24px',
+        borderRadius: '12px',
+        color: '#fff',
+        fontFamily: "'Segoe UI', sans-serif",
+        fontWeight: 'bold',
+        fontSize: '16px',
+        boxShadow: '0 8px 32px 0 rgba(0, 0, 0, 0.37)',
+        opacity: '0',
+        transform: 'translateY(-20px)',
+        transition: 'all 0.3s cubic-bezier(0.68, -0.55, 0.27, 1.55)',
+        backdropFilter: 'blur(8px)',
+        border: '1px solid rgba(255, 255, 255, 0.18)',
+        minWidth: '250px',
+        textAlign: 'center',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        gap: '10px'
+    });
+
+    // ألوان حسب النوع
+    if (type === 'success') {
+        notif.style.background = 'linear-gradient(135deg, rgba(0, 200, 83, 0.9), rgba(0, 150, 36, 0.9))';
+    } else if (type === 'error') {
+        notif.style.background = 'linear-gradient(135deg, rgba(213, 0, 0, 0.9), rgba(150, 0, 0, 0.9))';
+    } else if (type === 'warning') {
+        notif.style.background = 'linear-gradient(135deg, rgba(255, 171, 0, 0.9), rgba(255, 140, 0, 0.9))';
+        notif.style.color = '#000';
+    } else {
+        notif.style.background = 'linear-gradient(135deg, rgba(33, 150, 243, 0.9), rgba(25, 118, 210, 0.9))';
+    }
+
+    container.appendChild(notif);
+
+    // تحريك الدخول
+    requestAnimationFrame(() => {
+        notif.style.opacity = '1';
+        notif.style.transform = 'translateY(0)';
+    });
+
+    // إزالة الإشعار بعد فترة
+    setTimeout(() => {
+        notif.style.opacity = '0';
+        notif.style.transform = 'translateY(-20px)';
+        setTimeout(() => {
+            if (notif.parentNode) notif.parentNode.removeChild(notif);
+        }, 300);
+    }, 2500);
+}
+
+function showConfirmation(text, onConfirm) {
+    // التحقق من عدم وجود نافذة مفتوحة بالفعل
+    if (document.getElementById('custom-confirm-overlay')) return;
+
+    const overlay = document.createElement('div');
+    overlay.id = 'custom-confirm-overlay';
+    Object.assign(overlay.style, {
+        position: 'fixed',
+        top: '0',
+        left: '0',
+        width: '100%',
+        height: '100%',
+        background: 'rgba(0, 0, 0, 0.8)',
+        zIndex: '3000',
+        display: 'flex',
+        justifyContent: 'center',
+        alignItems: 'center',
+        backdropFilter: 'blur(5px)',
+        opacity: '0',
+        transition: 'opacity 0.3s ease'
+    });
+
+    const box = document.createElement('div');
+    Object.assign(box.style, {
+        background: 'linear-gradient(135deg, #1a1a2e, #16213e)',
+        padding: '30px',
+        borderRadius: '20px',
+        border: '1px solid rgba(255, 255, 255, 0.1)',
+        textAlign: 'center',
+        maxWidth: '90%',
+        width: '400px',
+        boxShadow: '0 20px 50px rgba(0,0,0,0.5)',
+        transform: 'scale(0.8)',
+        transition: 'transform 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275)'
+    });
+
+    const icon = document.createElement('div');
+    icon.innerText = '⚠️';
+    icon.style.fontSize = '50px';
+    icon.style.marginBottom = '15px';
+
+    const msg = document.createElement('p');
+    msg.innerText = text;
+    Object.assign(msg.style, {
+        color: '#fff',
+        fontSize: '18px',
+        marginBottom: '30px',
+        lineHeight: '1.5',
+        fontFamily: "'Segoe UI', sans-serif"
+    });
+
+    const btnContainer = document.createElement('div');
+    Object.assign(btnContainer.style, {
+        display: 'flex',
+        justifyContent: 'center',
+        gap: '15px'
+    });
+
+    const createBtn = (text, bg, onClick) => {
+        const btn = document.createElement('button');
+        btn.innerText = text;
+        Object.assign(btn.style, {
+            padding: '12px 30px',
+            border: 'none',
+            borderRadius: '12px',
+            background: bg,
+            color: 'white',
+            fontWeight: 'bold',
+            cursor: 'pointer',
+            fontSize: '16px',
+            transition: 'transform 0.1s',
+            flex: '1'
+        });
+        btn.onmousedown = () => btn.style.transform = 'scale(0.95)';
+        btn.onmouseup = () => btn.style.transform = 'scale(1)';
+        btn.onclick = onClick;
+        return btn;
+    };
+
+    const close = () => {
+        overlay.style.opacity = '0';
+        box.style.transform = 'scale(0.8)';
+        setTimeout(() => {
+            if (overlay.parentNode) overlay.parentNode.removeChild(overlay);
+        }, 300);
+    };
+
+    const yesBtn = createBtn('✅ Yes', 'linear-gradient(45deg, #00c853, #64dd17)', () => {
+        close();
+        if (onConfirm) onConfirm();
+    });
+
+    const noBtn = createBtn('❌ No', 'linear-gradient(45deg, #d50000, #ff1744)', () => {
+        close();
+    });
+
+    btnContainer.appendChild(noBtn);
+    btnContainer.appendChild(yesBtn);
+
+    box.appendChild(icon);
+    box.appendChild(msg);
+    box.appendChild(btnContainer);
+    overlay.appendChild(box);
+    document.body.appendChild(overlay);
+
+    // تحريك الدخول
+    requestAnimationFrame(() => {
+        overlay.style.opacity = '1';
+        box.style.transform = 'scale(1)';
+    });
+}
+
 function showSaveIndicator() {
     let indicator = document.getElementById('saveIndicator');
     if (!indicator) {
         indicator = document.createElement('div');
         indicator.id = 'saveIndicator';
-        indicator.style.position = 'fixed';
-        indicator.style.bottom = '20px';
-        indicator.style.right = '20px';
-        indicator.style.color = '#00ff88';
-        indicator.style.fontFamily = 'Arial, sans-serif';
-        indicator.style.fontSize = '14px';
-        indicator.style.pointerEvents = 'none';
-        indicator.style.zIndex = '1000';
+        Object.assign(indicator.style, {
+            position: 'fixed',
+            bottom: '20px',
+            right: '20px',
+            padding: '8px 16px',
+            background: 'rgba(0, 0, 0, 0.6)',
+            borderRadius: '20px',
+            color: '#00ff88',
+            fontFamily: 'monospace',
+            fontSize: '14px',
+            pointerEvents: 'none',
+            zIndex: '1000',
+            display: 'flex',
+            alignItems: 'center',
+            gap: '8px',
+            border: '1px solid #00ff88',
+            boxShadow: '0 0 10px rgba(0, 255, 136, 0.2)',
+            transition: 'opacity 0.5s ease'
+        });
         document.body.appendChild(indicator);
     }
-    indicator.innerText = TRANSLATIONS[currentLanguage].saving || "Saving...";
+    indicator.innerHTML = '💾 ' + (TRANSLATIONS[currentLanguage].saving || "Saving...");
     indicator.style.opacity = '1';
     
     // إخفاء بعد ثانية
@@ -332,3 +532,5 @@ window.cycleBrightness = cycleBrightness;
 window.openGuide = openGuide;
 window.closeGuide = closeGuide;
 window.showSaveIndicator = showSaveIndicator;
+window.showNotification = showNotification;
+window.showConfirmation = showConfirmation;

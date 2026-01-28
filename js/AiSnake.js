@@ -331,24 +331,58 @@ class AiSnake {
             ctx.globalAlpha = 0.5 + Math.sin(Date.now() / 100) * 0.3;
         }
 
+        // حدود العرض للاستبعاد (Culling)
+        let viewLeft = 0, viewRight = 0, viewTop = 0, viewBottom = 0;
+        if (typeof camera !== 'undefined' && typeof canvas !== 'undefined') {
+            viewLeft = camera.x - GRID_SIZE * 2;
+            viewRight = camera.x + canvas.width + GRID_SIZE * 2;
+            viewTop = camera.y - GRID_SIZE * 2;
+            viewBottom = camera.y + canvas.height + GRID_SIZE * 2;
+        }
+
         this.body.forEach((part, index) => {
             const x = part.x * GRID_SIZE;
             const y = part.y * GRID_SIZE;
             
+            // تحسين الأداء: لا ترسم هذا الجزء إذا كان خارج الشاشة
+            if (viewRight > 0 && (x < viewLeft || x > viewRight || y < viewTop || y > viewBottom)) return;
+            
             if (index === 0) {
-                // رسم الرأس بتصميم مميز
+                // --- HEAD ---
+                // توهج للزعيم
+                if (this.isBoss) {
+                    ctx.shadowColor = this.headColor;
+                    ctx.shadowBlur = 15;
+                }
+                
                 ctx.fillStyle = this.headColor;
-                ctx.fillRect(x, y, GRID_SIZE, GRID_SIZE);
+                ctx.beginPath();
+                if (ctx.roundRect) ctx.roundRect(x, y, GRID_SIZE, GRID_SIZE, 8);
+                else ctx.fillRect(x, y, GRID_SIZE, GRID_SIZE);
+                ctx.fill();
+                ctx.shadowBlur = 0;
+
                 // عيون صفراء متوهجة
                 ctx.fillStyle = this.isBoss ? '#00ff00' : '#ffeb3b'; // عيون خضراء للزعيم
-                ctx.fillRect(x + 4, y + 4, 4, 4);
-                ctx.fillRect(x + 12, y + 4, 4, 4);
+                ctx.beginPath(); ctx.arc(x + 6, y + 6, 2.5, 0, Math.PI*2); ctx.fill();
+                ctx.beginPath(); ctx.arc(x + 14, y + 6, 2.5, 0, Math.PI*2); ctx.fill();
             } else {
-                // رسم الجسم بنمط مخطط
-                ctx.fillStyle = index % 2 === 0 ? this.color : '#7f0000';
-                ctx.fillRect(x, y, GRID_SIZE, GRID_SIZE);
-                ctx.strokeStyle = 'rgba(0,0,0,0.3)';
-                ctx.strokeRect(x, y, GRID_SIZE, GRID_SIZE);
+                // --- BODY ---
+                ctx.fillStyle = this.color;
+                ctx.beginPath();
+                // تصغير الجسم قليلاً ليكون أنعم
+                if (ctx.roundRect) ctx.roundRect(x + 1, y + 1, GRID_SIZE - 2, GRID_SIZE - 2, 5);
+                else ctx.fillRect(x + 1, y + 1, GRID_SIZE - 2, GRID_SIZE - 2);
+                ctx.fill();
+
+                // تدرج لوني لإعطاء عمق (3D Effect)
+                const cx = x + GRID_SIZE / 2;
+                const cy = y + GRID_SIZE / 2;
+                const grad = ctx.createRadialGradient(cx - 2, cy - 2, 2, cx, cy, 8);
+                grad.addColorStop(0, 'rgba(255, 255, 255, 0.2)');
+                grad.addColorStop(1, 'rgba(0, 0, 0, 0.2)');
+                ctx.fillStyle = grad;
+                ctx.fill();
             }
         });
 

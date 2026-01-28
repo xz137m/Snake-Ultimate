@@ -1,5 +1,7 @@
 body {
-    background: radial-gradient(circle at center, rgb(25, 35, 60) 0%, rgb(10, 15, 25) 100%);
+    background: linear-gradient(-45deg, #0f0c29, #302b63, #24243e, #141e30);
+    background-size: 400% 400%;
+    animation: gradientBG 15s ease infinite;
     color: white;
     font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
     display: flex;
@@ -10,6 +12,12 @@ body {
     margin: 0;
     overflow: hidden;
     user-select: none; /* منع التحديد أثناء اللعب باللمس */
+}
+
+@keyframes gradientBG {
+    0% { background-position: 0% 50%; }
+    50% { background-position: 100% 50%; }
+    100% { background-position: 0% 50%; }
 }
 
 .main-layout {

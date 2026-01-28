@@ -27,7 +27,10 @@ function renderShopItems() {
         
         if (item.id === 'foodCount') bonusVal = `+${item.level}`;
         else if (item.id === 'scoreMult') bonusVal = `+${item.level}%`;
-        else if (item.id === 'doublePoints') bonusVal = `+${item.level}%`;
+        else if (item.id === 'doublePoints') {
+            let mult = (item.level === 0) ? 1 : item.level * Math.pow(2, Math.floor(item.level / 10));
+            bonusVal = `x${window.formatNumber(mult)}`;
+        }
         else if (item.id === 'xpMult') bonusVal = `+${item.level}%`;
         else if (item.id === 'growthBoost') bonusVal = `+${item.level}`;
         else if (item.id === 'eatRange') bonusVal = `+${item.level}`;
@@ -92,6 +95,7 @@ function buyMaxUpgrade(id, baseCost) {
             updateScore();
             renderShopItems();
             playSound('eat');
+            showNotification(`✅ Purchased ${n} Upgrades!`, 'success');
         }
         return;
     }
@@ -117,6 +121,7 @@ function buyMaxUpgrade(id, baseCost) {
         updateScore();
         renderShopItems();
         playSound('eat');
+        showNotification(`✅ Purchased ${n} Upgrades!`, 'success');
     }
 }
 
@@ -135,5 +140,6 @@ function buyUpgrade(id, cost) {
         updateScore();
         renderShopItems();
         playSound('eat');
+        showNotification(`✅ Upgrade Successful!`, 'success');
     }
 }
