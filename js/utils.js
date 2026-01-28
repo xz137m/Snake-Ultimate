@@ -1,4 +1,5 @@
 function formatNumber(num) {
+    if (num === undefined || num === null || isNaN(num)) return "0";
     if (num === 0) return "0";
     if (num < 1000) return Math.floor(num).toString();
     
@@ -20,6 +21,7 @@ function formatNumber(num) {
 }
 
 function getCurrentLevelCap() {
+    if (typeof LEVEL_CAPS === 'undefined') return 15; // Fallback
     let bestScore = Math.max(score, highScore);
     let cap = LEVEL_CAPS[0].limit;
     for (let i = 0; i < LEVEL_CAPS.length; i++) {
@@ -65,6 +67,7 @@ function playSound(type) {
 }
 
 function createParticles(x, y, color) {
+    if (typeof particles === 'undefined') return;
     if (!particlesEnabled) return;
     for (let i = 0; i < 12; i++) {
         particles.push({
@@ -79,6 +82,7 @@ function createParticles(x, y, color) {
 }
 
 function getUpgradeCost(baseCost, currentLevel, id) {
+    if (typeof STATIC_COSTS === 'undefined') return baseCost;
     if (STATIC_COSTS[id]) {
         return STATIC_COSTS[id][currentLevel] || Infinity;
     }
@@ -102,3 +106,20 @@ function getEvolutionStage(length) {
     }
     return thresholds.length; // يرجع أقصى مرحلة ولا يعود للصفر
 }
+
+// --- دالة عامة لإخفاء اللوحات ---
+function hidePanel(id) {
+    const panel = document.getElementById(id);
+    const menu = document.getElementById('menu-overlay');
+    if (panel) panel.classList.add('hidden');
+    if (menu) menu.classList.remove('hidden');
+}
+
+// --- تصدير الدوال للنطاق العام (Global Scope) ---
+window.formatNumber = formatNumber;
+window.getCurrentLevelCap = getCurrentLevelCap;
+window.playSound = playSound;
+window.createParticles = createParticles;
+window.getUpgradeCost = getUpgradeCost;
+window.getEvolutionStage = getEvolutionStage;
+window.hidePanel = hidePanel;

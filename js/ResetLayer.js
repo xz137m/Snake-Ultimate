@@ -4,13 +4,6 @@ function openRebirth() {
     renderRebirthShop();
 }
 
-function closeRebirth() {
-    const rOverlay = document.getElementById('rebirth-overlay') || rebirthOverlay;
-    const mOverlay = document.getElementById('menu-overlay') || menuOverlay;
-    if (rOverlay) rOverlay.classList.add('hidden');
-    if (mOverlay) mOverlay.classList.remove('hidden');
-}
-
 function calculateRebirthPoints() {
     if (coins < 10000) return 0;
     return Math.floor(Math.sqrt(coins) / 100);
@@ -45,7 +38,7 @@ function performRebirth() {
         } catch (e) {
             console.error("Rebirth Error:", e);
         } finally {
-            closeRebirth();
+            window.hidePanel('rebirth-overlay');
         }
     }
 }
@@ -68,31 +61,39 @@ function renderRebirthShop() {
     container.innerHTML = '';
     const t = TRANSLATIONS[currentLanguage];
     let potentialRP = calculateRebirthPoints();
-    document.getElementById('doRebirthBtn').innerText = t.rebirthBtn.replace('{0}', formatNumber(potentialRP));
-    document.getElementById('rpShopDisplay').innerText = formatNumber(rebirthPoints);
+    document.getElementById('doRebirthBtn').innerText = t.rebirthBtn.replace('{0}', window.formatNumber(potentialRP));
+    document.getElementById('rpShopDisplay').innerText = window.formatNumber(rebirthPoints);
     const items = [
         { id: 'permScore', name: t.permScore, desc: t.permScoreDesc, level: prestigeUpgrades.permScore },
         { id: 'permXp', name: t.permXp, desc: t.permXpDesc, level: prestigeUpgrades.permXp }
     ];
     items.forEach(item => {
+        let dynamicInfo = '';
+        let bonusVal = '';
+        if (item.id === 'permScore') bonusVal = `+${item.level * 10}%`;
+        else if (item.id === 'permXp') bonusVal = `+${item.level * 10}%`;
+
+        if (bonusVal) {
+             dynamicInfo = `<br><span style="color: #00ff00; font-weight: bold; font-size: 0.9em;">${t.currentBonus} ${bonusVal}</span>`;
+        }
+
         let cost = Math.floor(10 * Math.pow(1.5, item.level));
         const div = document.createElement('div');
         div.className = 'shop-item';
         div.style.borderColor = '#e040fb';
         div.innerHTML = `
             <h3 style="color: #e040fb">${item.name}</h3>
-            <p>${item.desc}</p>
+            <p>${item.desc}${dynamicInfo}</p>
             <p>Lvl: ${item.level}</p>
-            <button onclick="buyPrestigeUpgrade('${item.id}')" ${rebirthPoints < cost ? 'disabled style="opacity:0.5"' : ''}>
-                ${t.buy} (${formatNumber(cost)} RP)
+            <button onclick="window.buyPrestigeUpgrade('${item.id}')" ${rebirthPoints < cost ? 'disabled style="opacity:0.5"' : ''}>
+                ${t.buy} (${window.formatNumber(cost)} RP)
             </button>
         `;
         container.appendChild(div);
     });
 }
 
-// تفعيل زر الإغلاق عند تحميل الصفحة
-document.addEventListener('DOMContentLoaded', () => {
-    const closeBtn = document.getElementById('closeRebirthBtn');
-    if (closeBtn) closeBtn.addEventListener('click', closeRebirth);
-});
+// تصدير الدوال للنطاق العام
+window.openRebirth = openRebirth;
+window.performRebirth = performRebirth;
+window.buyPrestigeUpgrade = buyPrestigeUpgrade;

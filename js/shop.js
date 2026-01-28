@@ -4,11 +4,6 @@ function openShop() {
     renderShopItems();
 }
 
-function closeShop() {
-    shopOverlay.classList.add('hidden');
-    menuOverlay.classList.remove('hidden');
-}
-
 function renderShopItems() {
     const container = document.getElementById('shop-items');
     container.innerHTML = '';
@@ -21,14 +16,37 @@ function renderShopItems() {
         { id: 'xpMult', baseCost: 50, name: t.xpBonus, desc: t.xpBonusDesc, level: upgrades.xpMult, maxLevel: UPGRADE_LIMITS.xpMult, cost: getUpgradeCost(50, upgrades.xpMult, 'xpMult') },
         { id: 'growthBoost', baseCost: 100000000, name: t.growthSurge, desc: t.growthSurgeDesc, level: upgrades.growthBoost, maxLevel: UPGRADE_LIMITS.growthBoost, cost: getUpgradeCost(0, upgrades.growthBoost, 'growthBoost') },
         { id: 'eatRange', baseCost: 1000000000, name: t.magnetRange, desc: t.magnetRangeDesc, level: upgrades.eatRange, maxLevel: UPGRADE_LIMITS.eatRange, cost: getUpgradeCost(0, upgrades.eatRange, 'eatRange') },
-        { id: 'luckBoost', baseCost: 1000000, name: t.luckyCharm, desc: t.luckyCharmDesc, level: upgrades.luckBoost, maxLevel: UPGRADE_LIMITS.luckBoost, cost: getUpgradeCost(1000000, upgrades.luckBoost, 'luckBoost') }
+        { id: 'luckBoost', baseCost: 1000000, name: t.luckyCharm, desc: t.luckyCharmDesc, level: upgrades.luckBoost, maxLevel: UPGRADE_LIMITS.luckBoost, cost: getUpgradeCost(1000000, upgrades.luckBoost, 'luckBoost') },
+        { id: 'soulsMult', baseCost: 500, name: t.soulsMult, desc: t.soulsMultDesc, level: upgrades.soulsMult, maxLevel: UPGRADE_LIMITS.soulsMult, cost: getUpgradeCost(500, upgrades.soulsMult, 'soulsMult') },
+        { id: 'soulsExp', baseCost: 5000, name: t.soulsExp, desc: t.soulsExpDesc, level: upgrades.soulsExp, maxLevel: UPGRADE_LIMITS.soulsExp, cost: getUpgradeCost(5000, upgrades.soulsExp, 'soulsExp') }
     ];
     items.forEach(item => {
+        // حساب وعرض التأثير الحالي لجميع التطويرات بلون مميز
+        let dynamicInfo = '';
+        let bonusVal = '';
+        
+        if (item.id === 'foodCount') bonusVal = `+${item.level}`;
+        else if (item.id === 'scoreMult') bonusVal = `+${item.level}%`;
+        else if (item.id === 'doublePoints') bonusVal = `+${item.level}%`;
+        else if (item.id === 'xpMult') bonusVal = `+${item.level}%`;
+        else if (item.id === 'growthBoost') bonusVal = `+${item.level}`;
+        else if (item.id === 'eatRange') bonusVal = `+${item.level}`;
+        else if (item.id === 'luckBoost') bonusVal = `Lvl ${item.level}`;
+        else if (item.id === 'soulsMult') bonusVal = `+${item.level * 5}%`;
+        else if (item.id === 'soulsExp') {
+            let bonus = item.level * Math.pow(2, Math.floor(item.level / 10));
+            bonusVal = `+${window.formatNumber(bonus)}`;
+        }
+
+        if (bonusVal) {
+             dynamicInfo = `<br><span style="color: #00ff00; font-weight: bold; font-size: 0.9em;">${t.currentBonus} ${bonusVal}</span>`;
+        }
+
         const div = document.createElement('div');
         div.className = 'shop-item';
         div.innerHTML = `
             <h3>${item.name}</h3>
-            <p>${item.desc}</p>
+            <p>${item.desc}${dynamicInfo}</p>
             <p>Level: ${item.level} / ${item.maxLevel}</p>
             <div class="shop-buttons">
                 <button onclick="buyUpgrade('${item.id}', ${item.cost})" ${coins < item.cost || item.level >= item.maxLevel ? 'disabled style="opacity:0.5"' : ''}>
@@ -77,7 +95,7 @@ function buyMaxUpgrade(id, baseCost) {
         }
         return;
     }
-    
+
     let n = 0;
     let totalCost = 0;
     let tempLevel = currentLevel;
@@ -101,6 +119,11 @@ function buyMaxUpgrade(id, baseCost) {
         playSound('eat');
     }
 }
+
+// --- تصدير الدوال للنطاق العام (Global Scope) ---
+window.openShop = openShop;
+window.buyUpgrade = buyUpgrade;
+window.buyMaxUpgrade = buyMaxUpgrade;
 
 function buyUpgrade(id, cost) {
     if (upgrades[id] >= UPGRADE_LIMITS[id]) return;

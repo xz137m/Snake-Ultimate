@@ -22,6 +22,7 @@ document.addEventListener('DOMContentLoaded', () => {
     guideOverlay = document.getElementById('guide-overlay');
     settingsOverlay = document.getElementById('settings-overlay');
     rebirthOverlay = document.getElementById('rebirth-overlay');
+    slayerShopOverlay = document.getElementById('slayer-shop-overlay');
 
     progressFill = document.getElementById('progressFill');
     progressText = document.getElementById('progressText');
@@ -32,15 +33,58 @@ document.addEventListener('DOMContentLoaded', () => {
     const startBtn = document.getElementById('startBtn');
     if (startBtn) startBtn.addEventListener('click', startGame);
 
-    document.getElementById('shopBtn').addEventListener('click', openShop);
-    document.getElementById('guideBtn').addEventListener('click', openGuide);
-    document.getElementById('settingsBtn').addEventListener('click', openSettings);
-    document.getElementById('resetBtn').addEventListener('click', resetGameProgress);
-    document.getElementById('rebirthMenuBtn').addEventListener('click', openRebirth);
+    // --- ربط أزرار القوائم الرئيسية ---
+    const shopBtn = document.getElementById('shopBtn');
+    if (shopBtn) shopBtn.addEventListener('click', () => window.openShop());
+
+    const slayerShopBtn = document.getElementById('slayerShopBtn');
+    if (slayerShopBtn) slayerShopBtn.addEventListener('click', () => window.openSlayerShop());
+
+    const guideBtn = document.getElementById('guideBtn');
+    if (guideBtn) guideBtn.addEventListener('click', () => window.openGuide());
+
+    const settingsBtn = document.getElementById('settingsBtn');
+    if (settingsBtn) settingsBtn.addEventListener('click', () => window.openSettings());
+
+    const resetBtn = document.getElementById('resetBtn');
+    if (resetBtn) resetBtn.addEventListener('click', () => window.resetGameProgress());
+
+    const rebirthMenuBtn = document.getElementById('rebirthMenuBtn');
+    if (rebirthMenuBtn) rebirthMenuBtn.addEventListener('click', () => window.openRebirth());
     
-    document.getElementById('closeShopBtn').addEventListener('click', closeShop);
-    document.getElementById('closeGuideBtn').addEventListener('click', closeGuide);
-    document.getElementById('closeSettingsBtn').addEventListener('click', closeSettings);
+    // --- ربط أزرار الإغلاق ---
+    const closeShopBtn = document.getElementById('closeShopBtn');
+    if (closeShopBtn) closeShopBtn.addEventListener('click', () => {
+        console.log('Shop Close Button Clicked!');
+        window.hidePanel('shop-overlay');
+    });
+    
+    const closeSlayerBtn = document.getElementById('closeSlayerShopBtn');
+    if (closeSlayerBtn) closeSlayerBtn.addEventListener('click', () => {
+        console.log('Slayer Shop Close Button Clicked!');
+        window.hidePanel('slayer-shop-overlay');
+    });
+    
+    const closeGuideBtn = document.getElementById('closeGuideBtn');
+    if (closeGuideBtn) closeGuideBtn.addEventListener('click', () => {
+        console.log('Guide Close Button Clicked!');
+        window.hidePanel('guide-overlay');
+    });
+    
+    const closeSettingsBtn = document.getElementById('closeSettingsBtn');
+    if (closeSettingsBtn) closeSettingsBtn.addEventListener('click', () => {
+        console.log('Settings Close Button Clicked!');
+        window.hidePanel('settings-overlay');
+    });
+    
+    const closeRebirthBtn = document.getElementById('closeRebirthBtn');
+    if (closeRebirthBtn) closeRebirthBtn.addEventListener('click', () => {
+        console.log('Rebirth Close Button Clicked!');
+        window.hidePanel('rebirth-overlay');
+    });
+    
+    const doRebirthBtn = document.getElementById('doRebirthBtn');
+    if (doRebirthBtn) doRebirthBtn.addEventListener('click', () => window.performRebirth());
     
     toggleSoundBtn = document.getElementById('toggleSoundBtn');
     toggleSoundBtn.addEventListener('click', toggleSound);
@@ -69,6 +113,17 @@ document.addEventListener('DOMContentLoaded', () => {
 
 // إضافة مستمعي الأحداث العامة
 window.addEventListener('keydown', handleKeyPress);
+window.addEventListener('keyup', (e) => {
+    if (e.key === 'Shift') {
+        isSprinting = false;
+    }
+});
+window.addEventListener('keydown', (e) => {
+    if (e.repeat) return; // منع تكرار الحدث عند التعليق على الزر
+    if (e.key === 'Shift') {
+        isSprinting = true;
+    }
+});
 
 // دعم اللمس
 document.addEventListener('touchstart', e => {

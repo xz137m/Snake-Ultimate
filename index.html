@@ -9,45 +9,19 @@
     <title>Snake Ultimate</title>
     <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🐍</text></svg>">
     <link rel="stylesheet" href="style.css">
-    <style>
-        /* Enhanced UI Styles for Dashboard Look */
-        .ui-panel {
-            background: rgba(20, 20, 20, 0.9);
-            border: 1px solid rgba(255, 255, 255, 0.15);
-            border-radius: 8px;
-            padding: 8px 12px;
-            box-shadow: 0 4px 6px rgba(0,0,0,0.3);
-            backdrop-filter: blur(5px);
-        }
-        .stat-row {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            width: 100%;
-        }
-        .stat-value {
-            font-weight: bold;
-            font-family: 'Courier New', monospace;
-            font-size: 1.1em;
-        }
-        .xp-track {
-            width: 100%;
-            height: 10px;
-            background: #333;
-            border-radius: 5px;
-            overflow: hidden;
-            box-shadow: inset 0 1px 3px rgba(0,0,0,0.5);
-        }
-    </style>
     <div id="fpsCounter" style="position: fixed; top: 5px; left: 5px; color: #00ff00; font-family: monospace; font-weight: bold; z-index: 1000; text-shadow: 1px 1px 2px black;">FPS: 60</div>
     <div id="killCounterDisplay" style="position: fixed; top: 5px; right: 5px; color: #ff3333; font-family: monospace; font-weight: bold; z-index: 1000; text-shadow: 1px 1px 2px black; font-size: 18px;">💀 Kills: 0</div>
     <div id="bossTimerDisplay" style="position: fixed; top: 30px; right: 5px; color: #e040fb; font-family: monospace; font-weight: bold; z-index: 1000; text-shadow: 1px 1px 2px black; font-size: 18px;">👹 Boss: 03:00</div>
+    
+    <!-- Hearts Container (Bottom Right) -->
+    <div id="heartsContainer"></div>
+    
 </head>
 <body>
     <canvas id="minimapCanvas" width="200" height="200"></canvas>
     <div class="main-layout">
         <!-- Stats Bar (Structured Grid Layout) -->
-        <div class="stats-bar" style="display: flex; justify-content: space-between; align-items: center; width: 95%; max-width: 1200px; margin-bottom: 25px; gap: 50px; text-shadow: 0 2px 5px rgba(0,0,0,0.8); background: none; border: none; box-shadow: none;">
+        <div class="stats-bar">
             
             <!-- Left Group: Score & High Score -->
             <div style="display: flex; flex-direction: column; gap: 20px; flex: 1;">
@@ -83,6 +57,10 @@
                     <span id="lblRP" style="color: #e040fb;">RP:</span> 
                     <span id="rpDisplay" class="stat-value" style="color: #e040fb;">0</span>
                 </div>
+                <div class="stat-row">
+                    <span id="lblSouls" style="color: #ff3333;">Souls:</span> 
+                    <span id="soulsDisplay" class="stat-value" style="color: #ff3333;">0</span>
+                </div>
             </div>
         </div>
 
@@ -90,6 +68,11 @@
         <canvas id="gameCanvas" width="800" height="600"></canvas>
         
         <div id="ui-layer">
+            <!-- Stamina Bar -->
+            <div class="stamina-container">
+                <div id="staminaFill"></div>
+            </div>
+            <div class="stamina-label">STAMINA (SHIFT)</div>
         </div>
 
         <div id="menu-overlay">
@@ -109,6 +92,7 @@
             <!-- Footer Buttons -->
             <div class="menu-footer">
                 <button id="shopBtn" class="btn-menu-item" style="background: linear-gradient(45deg, #ffb300, #ffcc00);">🛒 Shop</button>
+                <button id="slayerShopBtn" class="btn-menu-item" style="background: linear-gradient(45deg, #b71c1c, #ff5252);">⚔️ Slayer</button>
                 <button id="rebirthMenuBtn" class="btn-menu-item" style="background: linear-gradient(45deg, #d500f9, #aa00ff);">🌀 Rebirth</button>
                 <button id="guideBtn" class="btn-menu-item" style="background: linear-gradient(45deg, #9c27b0, #e040fb);">📜 Guide</button>
                 <button id="settingsBtn" class="btn-menu-item" style="background: linear-gradient(45deg, #607d8b, #78909c);">⚙️ Settings</button>
@@ -121,6 +105,13 @@
             <p style="color: #ffd700; font-size: 24px; margin-bottom: 20px;"><span id="lblBalance">Balance:</span> <span id="shopCoins">0</span> 💰</p>
             <div id="shop-items" class="shop-grid"></div>
             <button id="closeShopBtn" style="margin-top: 20px; background: #ff3366;">❌ Close</button>
+        </div>
+
+        <div id="slayer-shop-overlay" class="hidden">
+            <h1 id="slayerShopTitle" style="color: #ff3333;">⚔️ Slayer Shop</h1>
+            <p style="color: #ff3333; font-size: 24px; margin-bottom: 20px;"><span id="lblSoulsBalance">Souls:</span> <span id="slayerSoulsDisplay">0</span> 👻</p>
+            <div id="slayer-shop-items" class="shop-grid"></div>
+            <button id="closeSlayerShopBtn" style="margin-top: 20px; background: #ff3366;">❌ Close</button>
         </div>
 
         <div id="rebirth-overlay" class="hidden">
@@ -170,19 +161,20 @@
     </div>
  <!-- المكتبات والثوابت أولاً -->
  <script src="js/constants.js"></script>
- <script src="js/utils.js"></script>
  <script src="js/state.js"></script> <!-- المتغيرات العامة -->
+ <script src="js/utils.js"></script> <!-- الدوال المساعدة العامة -->
 
  <!-- الطبقات والواجهة -->
  <script src="js/ui.js"></script>
  <script src="js/shop.js"></script>
+ <script src="js/slayerShop.js"></script>
  <script src="js/ResetLayer.js"></script>
  <script src="js/Projectile.js"></script>
  <script src="js/AiSnake.js"></script>
  
  <!-- منطق اللعبة والتشغيل -->
  <script src="js/game.js"></script>
- <script src="js/main.js"></script>
+ <script type="module" src="js/main.js"></script>
  
 </body>
 </html> 

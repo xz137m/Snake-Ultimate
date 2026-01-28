@@ -1,45 +1,57 @@
 // Game State
-let snake = [];
-let particles = [];
-let foods = [];
-let projectiles = [];
-let aiSnakes = [];
-let velocity = { x: 0, y: 0 };
-let nextVelocity = { x: 0, y: 0 };
-let score = 0;
-let enemiesKilled = 0;
-let bossSpawnTimestamp = 0;
-let growthBuffer = 0;
-let prestigeLevel = 0;
-let renderLoopId;
-let isPaused = false;
-let isGameOver = false;
-let speed = 110;
-let camera = { x: 0, y: 0 };
-let TILE_COUNT_X = 20;
-let TILE_COUNT_Y = 20;
+var snake = [];
+var particles = [];
+var foods = [];
+var projectiles = [];
+var aiSnakes = [];
+var velocity = { x: 0, y: 0 };
+var nextVelocity = { x: 0, y: 0 };
+var score = 0;
+var enemiesKilled = 0;
+var bossSpawnTimestamp = 0;
+var growthBuffer = 0;
+var prestigeLevel = 0;
+var renderLoopId;
+var isPaused = false;
+var isGameOver = false;
+var speed = 110;
+var camera = { x: 0, y: 0 };
+var TILE_COUNT_X = 20;
+var TILE_COUNT_Y = 20;
 
 // Player Data & Settings
-let playerLevel = Number(localStorage.getItem('snakePlayerLevel')) || 1;
-let currentXp = Number(localStorage.getItem('snakeXp')) || 0;
-let coins = Number(localStorage.getItem('snakeCoins')) || 0;
-let highScore = Number(localStorage.getItem('snakeHighScore')) || 0;
-let rebirthPoints = Number(localStorage.getItem('snakeRP')) || 0;
-let upgrades = JSON.parse(localStorage.getItem('snakeUpgrades')) || {};
-let prestigeUpgrades = JSON.parse(localStorage.getItem('snakePrestigeUpgrades')) || { permScore: 0, permXp: 0 };
-let soundEnabled = localStorage.getItem('snakeSound') !== 'false';
-let particlesEnabled = localStorage.getItem('snakeParticles') !== 'false';
-let showEatRange = localStorage.getItem('snakeShowRange') !== 'false';
-let glowEnabled = localStorage.getItem('snakeGlow') !== 'false';
-let brightnessLevel = parseFloat(localStorage.getItem('snakeBrightness')) || 1.0;
-let currentLanguage = localStorage.getItem('snakeLanguage') || 'en';
+var playerLevel = Number(localStorage.getItem('snakePlayerLevel')) || 1;
+var currentXp = Number(localStorage.getItem('snakeXp')) || 0;
+var coins = Number(localStorage.getItem('snakeCoins')) || 0;
+var souls = Number(localStorage.getItem('snakeSouls')) || 0;
+var highScore = Number(localStorage.getItem('snakeHighScore')) || 0;
+var rebirthPoints = Number(localStorage.getItem('snakeRP')) || 0;
+var upgrades = JSON.parse(localStorage.getItem('snakeUpgrades')) || {};
+var prestigeUpgrades = JSON.parse(localStorage.getItem('snakePrestigeUpgrades')) || { permScore: 0, permXp: 0 };
+var slayerUpgrades = JSON.parse(localStorage.getItem('snakeSlayerUpgrades')) || { maxHearts: 0, maxStamina: 0, staminaRegen: 0 };
+
+// Combat State
+var currentHearts = 1;
+var currentStamina = 100;
+var isSprinting = false;
+var isExhausted = false; // هل اللاعب مرهق؟
+var staminaRegenTimestamp = 0; // متى يبدأ الشحن؟
+var isPlayerInvulnerable = false; // هل اللاعب في وضع الحماية؟
+var playerInvulnerabilityTime = 0; // وقت بدء الحماية
+
+var soundEnabled = localStorage.getItem('snakeSound') !== 'false';
+var particlesEnabled = localStorage.getItem('snakeParticles') !== 'false';
+var showEatRange = localStorage.getItem('snakeShowRange') !== 'false';
+var glowEnabled = localStorage.getItem('snakeGlow') !== 'false';
+var brightnessLevel = parseFloat(localStorage.getItem('snakeBrightness')) || 1.0;
+var currentLanguage = localStorage.getItem('snakeLanguage') || 'en';
 
 // Audio
-let audioCtx;
+var audioCtx;
 
 // Touch Controls
-let touchStartX = 0;
-let touchStartY = 0;
+var touchStartX = 0;
+var touchStartY = 0;
 
 // Initialize dynamic world size
 TILE_COUNT_X = 20 + playerLevel;
@@ -53,14 +65,19 @@ if (typeof upgrades.xpMult === 'undefined') upgrades.xpMult = 0;
 if (typeof upgrades.growthBoost === 'undefined') upgrades.growthBoost = 0;
 if (typeof upgrades.eatRange === 'undefined') upgrades.eatRange = 0;
 if (typeof upgrades.luckBoost === 'undefined') upgrades.luckBoost = 0;
+if (typeof upgrades.soulsMult === 'undefined') upgrades.soulsMult = 0;
+if (typeof upgrades.soulsExp === 'undefined') upgrades.soulsExp = 0;
 if (typeof prestigeUpgrades.permScore === 'undefined') prestigeUpgrades.permScore = 0;
 if (typeof prestigeUpgrades.permXp === 'undefined') prestigeUpgrades.permXp = 0;
+if (typeof slayerUpgrades.maxHearts === 'undefined') slayerUpgrades.maxHearts = 0;
+if (typeof slayerUpgrades.maxStamina === 'undefined') slayerUpgrades.maxStamina = 0;
+if (typeof slayerUpgrades.staminaRegen === 'undefined') slayerUpgrades.staminaRegen = 0;
 
 // HTML Elements (will be assigned in main.js)
-let canvas, ctx, minimapCanvas, minimapCtx, scoreElement, highScoreElement, coinsElement, rpElement, levelElement;
-let menuOverlay, shopOverlay, guideOverlay, settingsOverlay, rebirthOverlay;
-let startBtn, shopBtn, rebirthMenuBtn, guideBtn, settingsBtn, resetBtn;
-let closeShopBtn, closeRebirthBtn, doRebirthBtn, closeGuideBtn, closeSettingsBtn;
-let toggleSoundBtn, toggleParticlesBtn, toggleRangeBtn, toggleGlowBtn, toggleBrightnessBtn;
-let langEnBtn, langArBtn;
-let progressFill, progressText, xpFill, xpText;
+var canvas, ctx, minimapCanvas, minimapCtx, scoreElement, highScoreElement, coinsElement, rpElement, levelElement;
+var menuOverlay, shopOverlay, guideOverlay, settingsOverlay, rebirthOverlay, slayerShopOverlay;
+var startBtn, shopBtn, rebirthMenuBtn, guideBtn, settingsBtn, resetBtn, slayerShopBtn;
+var closeShopBtn, closeRebirthBtn, doRebirthBtn, closeGuideBtn, closeSettingsBtn, closeSlayerShopBtn;
+var toggleSoundBtn, toggleParticlesBtn, toggleRangeBtn, toggleGlowBtn, toggleBrightnessBtn;
+var langEnBtn, langArBtn;
+var progressFill, progressText, xpFill, xpText;

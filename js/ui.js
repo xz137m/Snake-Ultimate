@@ -12,6 +12,7 @@ function updateTexts() {
     document.getElementById('lblLevel').innerText = t.level;
     document.getElementById('lblGold').innerText = t.gold;
     document.getElementById('lblRP').innerText = t.rp;
+    document.getElementById('lblSouls').innerText = t.souls;
     document.getElementById('lblHighScore').innerText = t.highScore;
     document.getElementById('startBtn').innerText = t.play;
     document.getElementById('shopBtn').innerText = t.shop;
@@ -32,17 +33,26 @@ function updateTexts() {
     document.getElementById('lblAudioGame').innerText = t.audioGame;
     document.getElementById('lblGraphics').innerText = t.graphics;
     document.getElementById('lblProgress').innerText = t.nextEvo;
+    
+    // إصلاح زر إغلاق متجر القاتل: تحديث النص وربط الزر بالوظيفة
+    const btnCloseSlayer = document.getElementById('closeSlayerShopBtn');
+    if (btnCloseSlayer) {
+        btnCloseSlayer.innerText = t.close;
+    }
+    
     updateSettingsButtons();
     updateScore(); // تحديث الأرقام فوراً عند تحميل النصوص
     updateProgress();
 }
 
 function updateScore() {
-    document.getElementById('score').innerText = formatNumber(score);
-    document.getElementById('coinsDisplay').innerText = formatNumber(coins);
-    document.getElementById('rpDisplay').innerText = formatNumber(rebirthPoints);
-    document.getElementById('levelDisplay').innerText = playerLevel;
-    updateXpBar();
+    if(document.getElementById('score')) document.getElementById('score').innerText = formatNumber(score);
+    if(document.getElementById('coinsDisplay')) document.getElementById('coinsDisplay').innerText = formatNumber(coins);
+    if(document.getElementById('rpDisplay')) document.getElementById('rpDisplay').innerText = formatNumber(rebirthPoints);
+    if(document.getElementById('soulsDisplay')) document.getElementById('soulsDisplay').innerText = formatNumber(souls);
+    if(document.getElementById('levelDisplay')) document.getElementById('levelDisplay').innerText = playerLevel;
+    updateHearts();
+    updateStaminaBar();
     updateProgress();
 }
 
@@ -86,7 +96,40 @@ function updateProgress() {
     } else {
         const percent = Math.min((current / max) * 100, 100);
         document.getElementById('progressFill').style.width = `${percent}%`;
-        document.getElementById('progressText').innerText = `${current}/${max}`;
+        document.getElementById('progressText').innerText = `${current} / ${max}`;
+    }
+}
+
+function updateHearts() {
+    const container = document.getElementById('heartsContainer');
+    if (!container) return;
+    container.innerHTML = '';
+    
+    // Base hearts (1) + Upgrades
+    const totalHearts = 1 + slayerUpgrades.maxHearts;
+    
+    for (let i = 0; i < totalHearts; i++) {
+        const heart = document.createElement('span');
+        heart.style.fontSize = '24px';
+        // If index is less than currentHearts, it's red, else gray
+        heart.innerText = '❤️';
+        heart.style.filter = i < currentHearts ? 'none' : 'grayscale(100%) brightness(0.5)';
+        container.appendChild(heart);
+    }
+}
+
+function updateStaminaBar() {
+    const fill = document.getElementById('staminaFill');
+    if (fill) {
+        // Base stamina 100 + 20 per upgrade
+        const max = 100 + (slayerUpgrades.maxStamina * 20);
+        const pct = Math.max(0, Math.min(100, (currentStamina / max) * 100));
+        fill.style.width = `${pct}%`;
+        
+        // Change color if exhausted
+        if (typeof isExhausted !== 'undefined' && isExhausted) fill.style.background = '#777'; // رمادي عند الإرهاق
+        else if (currentStamina < (max * 0.2)) fill.style.background = '#ff0000'; // أحمر عند انخفاض الطاقة
+        else fill.style.background = 'linear-gradient(90deg, #ffff00, #ff9800)';
     }
 }
 
@@ -97,8 +140,7 @@ function openSettings() {
 }
 
 function closeSettings() {
-    settingsOverlay.classList.add('hidden');
-    menuOverlay.classList.remove('hidden');
+    window.hidePanel('settings-overlay');
 }
 
 function toggleSound() {
@@ -149,8 +191,7 @@ function openGuide() {
 }
 
 function closeGuide() {
-    guideOverlay.classList.add('hidden');
-    menuOverlay.classList.remove('hidden');
+    window.hidePanel('guide-overlay');
 }
 
 function renderGuideItems() {
@@ -174,7 +215,7 @@ function renderGuideItems() {
     levelDiv.style.borderColor = '#00ffff';
     levelDiv.style.gridColumn = '1 / -1';
     levelDiv.innerHTML = `
-        <h3 style="color: #00ffff">${t.currentLevel} </h3>
+        <h3 style="color: #00ffff">${t.currentLevel} ${playerLevel}</h3>
         <p>${t.levelEffect}</p>
         <p>${t.currentMult} <span style="color: #ffd700">x${formatNumber(levelMult * permScoreMult)}</span>!</p>
     `;
@@ -217,7 +258,7 @@ function renderGuideItems() {
         div.style.borderColor = isUnlocked ? fruit.color : '#555';
         div.style.opacity = isUnlocked ? '1' : '0.5';
         div.innerHTML = `
-            <h3 style="color: ${fruit.color}"> ${!isUnlocked ? t.locked : ''}</h3>
+            <h3 style="color: ${fruit.color}">${name} ${!isUnlocked ? t.locked : ''}</h3>
             ${!isUnlocked ? `<p style="color: #ff3366">${t.levelReq} ${fruit.reqLevel}</p>` : ''}
             <div style="width: 20px; height: 20px; background: ${fruit.color}; border-radius: 50%; margin: 10px auto; box-shadow: 0 0 10px ${fruit.glow}"></div>
             <p>${t.growth} +${fruit.growth}</p>
@@ -242,7 +283,7 @@ function renderGuideItems() {
         div.style.borderColor = isUnlocked ? snakeType.head : '#555';
         div.style.opacity = isUnlocked ? '1' : '0.5';
         div.innerHTML = `
-            <h3 style="color: ${snakeType.head}"> ${!isUnlocked ? t.locked : ''}</h3>
+            <h3 style="color: ${snakeType.head}">${snakeName} ${!isUnlocked ? t.locked : ''}</h3>
             ${!isUnlocked ? `<p style="color: #ff3366">${t.levelReq} ${snakeType.reqLevel}</p>` : ''}
             <div style="width: 40px; height: 40px; background: ${snakeType.body}; border: 4px solid ${snakeType.head}; margin: 10px auto;"></div>
             <p>${t.multiplier} x</p>
@@ -252,3 +293,42 @@ function renderGuideItems() {
         container.appendChild(div);
     });
 }
+
+function showSaveIndicator() {
+    let indicator = document.getElementById('saveIndicator');
+    if (!indicator) {
+        indicator = document.createElement('div');
+        indicator.id = 'saveIndicator';
+        indicator.style.position = 'fixed';
+        indicator.style.bottom = '20px';
+        indicator.style.right = '20px';
+        indicator.style.color = '#00ff88';
+        indicator.style.fontFamily = 'Arial, sans-serif';
+        indicator.style.fontSize = '14px';
+        indicator.style.pointerEvents = 'none';
+        indicator.style.zIndex = '1000';
+        document.body.appendChild(indicator);
+    }
+    indicator.innerText = TRANSLATIONS[currentLanguage].saving || "Saving...";
+    indicator.style.opacity = '1';
+    
+    // إخفاء بعد ثانية
+    setTimeout(() => {
+        indicator.style.opacity = '0';
+    }, 1500);
+}
+
+// --- تصدير الدوال للنطاق العام (Global Scope) ---
+window.setLanguage = setLanguage;
+window.updateTexts = updateTexts;
+window.updateScore = updateScore;
+window.openSettings = openSettings;
+window.closeSettings = closeSettings;
+window.toggleSound = toggleSound;
+window.toggleParticles = toggleParticles;
+window.toggleRange = toggleRange;
+window.toggleGlow = toggleGlow;
+window.cycleBrightness = cycleBrightness;
+window.openGuide = openGuide;
+window.closeGuide = closeGuide;
+window.showSaveIndicator = showSaveIndicator;
