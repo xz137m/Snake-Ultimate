@@ -376,13 +376,15 @@ class AiSnake {
                 ctx.fill();
 
                 // تدرج لوني لإعطاء عمق (3D Effect)
-                const cx = x + GRID_SIZE / 2;
-                const cy = y + GRID_SIZE / 2;
-                const grad = ctx.createRadialGradient(cx - 2, cy - 2, 2, cx, cy, 8);
-                grad.addColorStop(0, 'rgba(255, 255, 255, 0.2)');
-                grad.addColorStop(1, 'rgba(0, 0, 0, 0.2)');
-                ctx.fillStyle = grad;
-                ctx.fill();
+                if (typeof lowQualityMode === 'undefined' || !lowQualityMode) {
+                    const cx = x + GRID_SIZE / 2;
+                    const cy = y + GRID_SIZE / 2;
+                    const grad = ctx.createRadialGradient(cx - 2, cy - 2, 2, cx, cy, 8);
+                    grad.addColorStop(0, 'rgba(255, 255, 255, 0.2)');
+                    grad.addColorStop(1, 'rgba(0, 0, 0, 0.2)');
+                    ctx.fillStyle = grad;
+                    ctx.fill();
+                }
             }
         });
 

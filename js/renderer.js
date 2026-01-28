@@ -4,6 +4,10 @@ var activeShootingStars = []; // مصفوفة لتتبع الشهب المتحر
 var shockwaves = []; // مصفوفة لموجات الصدمة
 
 function updateParticles() {
+    if (typeof lowQualityMode !== 'undefined' && lowQualityMode) {
+        particles = []; // تفريغ الجسيمات فوراً
+        return;
+    }
     for (let i = particles.length - 1; i >= 0; i--) {
         let p = particles[i];
         p.x += p.vx;
@@ -60,33 +64,12 @@ function draw() {
     if (!ctx || !canvas) return;
 
     // 1. الخلفية العامة (The Void - فضاء عميق)
-    const bgGrad = ctx.createRadialGradient(canvas.width / 2, canvas.height / 2, 0, canvas.width / 2, canvas.height / 2, canvas.width);
-    bgGrad.addColorStop(0, '#0a0a12'); // مركز داكن جداً
-    bgGrad.addColorStop(1, '#000000'); // أطراف سوداء تماماً للتباين
-    ctx.fillStyle = bgGrad;
+    // تحسين الأداء: استخدام لون ثابت بدلاً من التدرج الشعاعي الثقيل
+    ctx.fillStyle = '#050508';
     ctx.fillRect(0, 0, canvas.width, canvas.height);
 
-    // --- سديم كوني (Nebula Atmosphere) - إضافة جوية ---
-    ctx.save();
-    const tNebula = Date.now() / 4000;
-    // رسم 3 سحب ملونة تتحرك ببطء لتعطي عمقاً
-    const nebulaColors = [
-        'rgba(120, 0, 255, 0.15)', // بنفسجي أوضح
-        'rgba(0, 150, 255, 0.15)', // أزرق أوضح
-        'rgba(255, 0, 100, 0.12)'  // وردي أوضح
-    ];
-    nebulaColors.forEach((col, i) => {
-        const nx = canvas.width/2 + Math.sin(tNebula + i) * 200;
-        const ny = canvas.height/2 + Math.cos(tNebula * 0.8 + i) * 100;
-        const grad = ctx.createRadialGradient(nx, ny, 0, nx, ny, canvas.width * 0.6);
-        grad.addColorStop(0, col);
-        grad.addColorStop(1, 'transparent');
-        ctx.fillStyle = grad;
-        ctx.fillRect(0, 0, canvas.width, canvas.height);
-    });
-    ctx.restore();
-
     // --- نجوم الخلفية (Parallax Stars) ---
+    if (!lowQualityMode) {
     ctx.save();
     ctx.fillStyle = 'rgba(255, 255, 255, 0.15)';
     for(let i=0; i<100; i++) {
@@ -105,8 +88,10 @@ function draw() {
         ctx.fillRect(px - 100, py - 100, size, size);
     }
     ctx.restore();
+    }
 
     // --- شهب (Shooting Stars) ---
+    if (!lowQualityMode) {
     // إضافة شهب جديدة
     if (Math.random() < 0.05) {
         activeShootingStars.push({
@@ -144,8 +129,7 @@ function draw() {
         ctx.stroke();
     }
     ctx.restore();
-    
-    ctx.filter = `brightness()`;
+    }
     
     // اهتزاز الشاشة
     ctx.save();
@@ -162,16 +146,12 @@ function draw() {
     // 2. رسم منطقة اللعب (The Platform)
     // إضافة ظل للمنصة لتبدو عائمة
     ctx.shadowColor = 'rgba(0, 0, 0, 0.8)';
-    ctx.shadowBlur = 80;
-    ctx.fillStyle = '#0d0d15'; // أرضية سوداء تقريباً لزيادة تباين النيون
+    ctx.shadowBlur = lowQualityMode ? 0 : 30; // تعطيل الظل تماماً في الوضع المنخفض
+    ctx.fillStyle = '#0d0d15'; // لون الأرضية الأساسي (المربعات الغامقة)
     ctx.fillRect(0, 0, TILE_COUNT_X * GRID_SIZE, TILE_COUNT_Y * GRID_SIZE);
     ctx.shadowBlur = 0; // إيقاف الظل
 
     // 3. رسم التفاصيل الأرضية (Checkerboard + Spotlight)
-    ctx.save();
-    ctx.beginPath();
-    ctx.rect(0, 0, TILE_COUNT_X * GRID_SIZE, TILE_COUNT_Y * GRID_SIZE);
-    ctx.clip();
 
     // حساب حدود الرسم الظاهرة فقط (Culling)
     const startX = Math.floor(camera.x / GRID_SIZE) * GRID_SIZE - GRID_SIZE;
@@ -182,6 +162,9 @@ function draw() {
     // رسم نمط رقعة الشطرنج الخفيف
     const time = Date.now() / 2000;
     const scanPos = (time % 1) * (TILE_COUNT_X * GRID_SIZE + 800) - 400; // موجة المسح تتحرك قطرياً
+    
+    // تحسين الأداء: رسم المربعات الفاتحة فقط، الخلفية تكفي للمربعات الغامقة
+    ctx.fillStyle = 'rgba(100, 200, 255, 0.05)'; // لون أساسي خفيف جداً للمربعات
 
     for (let x = startX; x <= endX; x += GRID_SIZE) {
         for (let y = startY; y <= endY; y += GRID_SIZE) {
@@ -189,31 +172,24 @@ function draw() {
                 const col = Math.floor(x / GRID_SIZE);
                 const row = Math.floor(y / GRID_SIZE);
                 
-                let alpha = 0.03;
-                let scanIntensity = 0;
-                // تأثير المسح الضوئي (Scanline Effect)
-                const dist = Math.abs((x + y) - scanPos);
-                if (dist < 200) {
-                    alpha += (1 - dist / 200) * 0.15; // موجة ضوء قوية جداً
-                    scanIntensity = (1 - dist / 200) * 0.15; // موجة ضوء
-                }
-
                 if ((col + row) % 2 === 0) {
-                    ctx.fillStyle = `rgba(100, 200, 255, )`; // لون سماوي (Cyan) بدلاً من الأبيض
-                    ctx.fillRect(x, y, GRID_SIZE, GRID_SIZE);
-                    // مربع فاتح (Light Tile)
-                    ctx.fillStyle = `rgba(45, 50, 65, ${0.6 + scanIntensity})`; 
-                } else {
-                    // مربع غامق (Dark Tile)
-                    ctx.fillStyle = `rgba(20, 25, 35, ${0.6 + scanIntensity})`;
+                    // تأثير المسح الضوئي (Scanline Effect)
+                    // حساب المسافة فقط للمربعات الظاهرة لتقليل العمليات الحسابية
+                    const dist = Math.abs((x + y) - scanPos);
+                    if (dist < 200) {
+                        ctx.fillStyle = `rgba(100, 200, 255, ${0.05 + (1 - dist / 200) * 0.1})`;
+                        ctx.fillRect(x, y, GRID_SIZE, GRID_SIZE);
+                        ctx.fillStyle = 'rgba(100, 200, 255, 0.05)'; // إعادة اللون للأصل
+                    } else {
+                        ctx.fillRect(x, y, GRID_SIZE, GRID_SIZE);
+                    }
                 }
-                ctx.fillRect(x, y, GRID_SIZE, GRID_SIZE);
             }
         }
     }
 
     // إضاءة تتبع اللاعب (Spotlight)
-    if (snake.length > 0) {
+    if (snake.length > 0 && !lowQualityMode) {
         const head = snake[0];
         const hx = head.x * GRID_SIZE + GRID_SIZE/2;
         const hy = head.y * GRID_SIZE + GRID_SIZE/2;
@@ -228,6 +204,7 @@ function draw() {
 
     // --- رسم موجات الصدمة (Shockwaves) ---
     // تُرسم على الأرضية لتكون تحت العناصر
+    if (!lowQualityMode) {
     ctx.save();
     for (let i = shockwaves.length - 1; i >= 0; i--) {
         let sw = shockwaves[i];
@@ -250,9 +227,8 @@ function draw() {
         ctx.stroke();
     }
     ctx.restore();
+    }
 
-    ctx.restore(); // إنهاء القص
-    
     // 4. رسم حدود العالم (Soft Border)
     const borderPulse = 10 + Math.sin(Date.now() / 800) * 5;
     ctx.shadowColor = 'rgba(0, 255, 255, 0.6)'; // حدود سماوية ساطعة
@@ -298,7 +274,7 @@ function draw() {
         const radius = (GRID_SIZE / 2 - 2) + bob;
 
         // --- منارة ضوئية (Light Beacon) للعناصر النادرة ---
-        if (type.points >= 1000) { 
+        if (type.points >= 1000 && !lowQualityMode) { 
              ctx.save();
              // عمود ضوء يتلاشى للأعلى
              const grad = ctx.createLinearGradient(cx, cy, cx, cy - 400);
@@ -323,21 +299,23 @@ function draw() {
 
         // 1. التوهج الخارجي والجسم الأساسي
         ctx.fillStyle = type.color;
-        ctx.shadowColor = glowEnabled ? type.glow : 'transparent';
-        ctx.shadowBlur = glowEnabled ? 15 : 0;
+        ctx.shadowColor = (glowEnabled && !lowQualityMode) ? type.glow : 'transparent';
+        ctx.shadowBlur = (glowEnabled && !lowQualityMode) ? 15 : 0;
         ctx.beginPath();
         ctx.arc(cx, cy, radius, 0, Math.PI * 2);
         ctx.fill();
         ctx.shadowBlur = 0;
 
         // 2. تأثير ثلاثي الأبعاد (لمعة وظل)
-        const grad = ctx.createRadialGradient(cx - radius * 0.3, cy - radius * 0.3, radius * 0.2, cx, cy, radius);
-        grad.addColorStop(0, 'rgba(255, 255, 255, 0.6)'); // لمعة بيضاء قوية
-        grad.addColorStop(1, 'rgba(0, 0, 0, 0.15)'); // ظل خفيف للحواف
-        ctx.fillStyle = grad;
-        ctx.beginPath();
-        ctx.arc(cx, cy, radius, 0, Math.PI * 2);
-        ctx.fill();
+        if (!lowQualityMode) {
+            const grad = ctx.createRadialGradient(cx - radius * 0.3, cy - radius * 0.3, radius * 0.2, cx, cy, radius);
+            grad.addColorStop(0, 'rgba(255, 255, 255, 0.6)'); // لمعة بيضاء قوية
+            grad.addColorStop(1, 'rgba(0, 0, 0, 0.15)'); // ظل خفيف للحواف
+            ctx.fillStyle = grad;
+            ctx.beginPath();
+            ctx.arc(cx, cy, radius, 0, Math.PI * 2);
+            ctx.fill();
+        }
 
         // 3. الغصن (Stem) لإعطاء شكل الفاكهة
         ctx.strokeStyle = 'rgba(90, 60, 30, 0.8)';
@@ -348,7 +326,7 @@ function draw() {
         ctx.stroke();
 
         // --- هالة للطعام النادر (Rare Food Aura) ---
-        if (type.points >= 1000) { 
+        if (type.points >= 1000 && !lowQualityMode) { 
             ctx.save();
             ctx.translate(cx, cy);
             const time = Date.now() / 1000;
@@ -470,7 +448,7 @@ function draw() {
 
         // --- عمود فقري نيون (Neon Spine) ---
         // رسم خط متوهج يربط أجزاء الجسم لتبدو متصلة
-        if (index > 0) {
+        if (index > 0 && !lowQualityMode) {
             const prev = snake[index - 1];
             // التحقق من أن الجزء السابق ليس بعيداً جداً (بسبب التفاف الشاشة)
             if (Math.abs(prev.x - part.x) <= 1 && Math.abs(prev.y - part.y) <= 1) {
@@ -496,8 +474,8 @@ function draw() {
         if (index === 0) {
             // --- HEAD ---
             ctx.fillStyle = currentColors.head;
-            ctx.shadowColor = glowEnabled ? currentColors.head : 'transparent';
-            ctx.shadowBlur = glowEnabled ? 30 : 0; // توهج الرأس مضاعف
+            ctx.shadowColor = (glowEnabled && !lowQualityMode) ? currentColors.head : 'transparent';
+            ctx.shadowBlur = (glowEnabled && !lowQualityMode) ? 30 : 0; // توهج الرأس مضاعف
             
             // رسم الرأس (مستطيل بحواف دائرية)
             ctx.beginPath();
@@ -508,11 +486,13 @@ function draw() {
             ctx.shadowBlur = 0;
 
             // لمعة ثلاثية الأبعاد للرأس
-            const headGrad = ctx.createRadialGradient(x + 6, y + 6, 1, x + 6, y + 6, 8);
-            headGrad.addColorStop(0, 'rgba(255, 255, 255, 0.4)');
-            headGrad.addColorStop(1, 'rgba(255, 255, 255, 0)');
-            ctx.fillStyle = headGrad;
-            ctx.fill();
+            if (!lowQualityMode) {
+                const headGrad = ctx.createRadialGradient(x + 6, y + 6, 1, x + 6, y + 6, 8);
+                headGrad.addColorStop(0, 'rgba(255, 255, 255, 0.4)');
+                headGrad.addColorStop(1, 'rgba(255, 255, 255, 0)');
+                ctx.fillStyle = headGrad;
+                ctx.fill();
+            }
 
             // العيون (بياض + بؤبؤ)
             ctx.fillStyle = 'white';
@@ -570,17 +550,19 @@ function draw() {
             ctx.fill();
 
             // لمعة (Shine) لإعطاء تأثير ثلاثي الأبعاد
-            ctx.fillStyle = 'rgba(255, 255, 255, 0.15)';
-            ctx.beginPath();
-            ctx.arc(x + 6, y + 6, 3, 0, Math.PI * 2);
-            // تدرج لوني لإعطاء تأثير كروي/ثلاثي الأبعاد (Gradient Overlay)
-            const cx = x + GRID_SIZE / 2;
-            const cy = y + GRID_SIZE / 2;
-            const bodyGrad = ctx.createRadialGradient(cx - 2, cy - 2, 2, cx, cy, 8);
-            bodyGrad.addColorStop(0, 'rgba(255, 255, 255, 0.25)');
-            bodyGrad.addColorStop(1, 'rgba(0, 0, 0, 0.15)');
-            ctx.fillStyle = bodyGrad;
-            ctx.fill();
+            if (!lowQualityMode) {
+                ctx.fillStyle = 'rgba(255, 255, 255, 0.15)';
+                ctx.beginPath();
+                ctx.arc(x + 6, y + 6, 3, 0, Math.PI * 2);
+                // تدرج لوني لإعطاء تأثير كروي/ثلاثي الأبعاد (Gradient Overlay)
+                const cx = x + GRID_SIZE / 2;
+                const cy = y + GRID_SIZE / 2;
+                const bodyGrad = ctx.createRadialGradient(cx - 2, cy - 2, 2, cx, cy, 8);
+                bodyGrad.addColorStop(0, 'rgba(255, 255, 255, 0.25)');
+                bodyGrad.addColorStop(1, 'rgba(0, 0, 0, 0.15)');
+                ctx.fillStyle = bodyGrad;
+                ctx.fill();
+            }
 
             // --- درع (Armor Detail) ---
             // رسم صفيحة درع في المنتصف لتبدو كحراشف قوية
@@ -641,17 +623,19 @@ function draw() {
 
     ctx.restore();
 
-    // 5. تأثير العدسة (Vignette) - يضاف فوق كل شيء
-    ctx.save();
-    const vignette = ctx.createRadialGradient(canvas.width/2, canvas.height/2, canvas.width/3, canvas.width/2, canvas.height/2, canvas.width);
-    vignette.addColorStop(0, 'rgba(0,0,0,0)');
-    vignette.addColorStop(1, 'rgba(0,0,0,0.5)');
-    ctx.fillStyle = vignette;
-    ctx.fillRect(0, 0, canvas.width, canvas.height);
-    ctx.restore();
+    // تحسين الأداء: تمت إزالة تأثير Vignette لأنه يرسم فوق الشاشة كاملة
 
     ctx.restore(); // استعادة حالة الاهتزاز
-    ctx.filter = 'none';
+    
+    // بديل خفيف للسطوع (Brightness) باستخدام طبقة شفافة بدلاً من الفلتر
+    if (brightnessLevel !== 1.0) {
+        ctx.globalCompositeOperation = brightnessLevel > 1.0 ? 'screen' : 'multiply';
+        ctx.fillStyle = `rgba(255, 255, 255, ${Math.abs(brightnessLevel - 1)})`;
+        if (brightnessLevel < 1.0) ctx.fillStyle = `rgba(0, 0, 0, ${1 - brightnessLevel})`;
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+        ctx.globalCompositeOperation = 'source-over';
+    }
+
     if (isPaused) {
         ctx.fillStyle = "rgba(0, 0, 0, 0.5)";
         ctx.fillRect(0, 0, canvas.width, canvas.height);

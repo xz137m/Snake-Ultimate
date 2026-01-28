@@ -9,6 +9,7 @@
     <title>Snake Ultimate</title>
     <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🐍</text></svg>">
     <link rel="stylesheet" href="style.css">
+    <link rel="stylesheet" href="CSS/base.css">
     
     <style>
         /* --- تحسينات الواجهة (HUD Styles) --- */
@@ -130,26 +131,28 @@
         </div>
 
         <div id="menu-overlay">
-            <!-- Header Section -->
-            <div class="menu-header">
-                <h1 style="font-size: 72px; margin-bottom: 0;">🐍 Snake Ultimate</h1>
-                <p id="menuInstructions">
-                    Use WASD / Arrows to move<br>
-                    SPACE to Pause<br>
-                    Collect food to grow & earn gold
-                </p>
-            </div>
+            <div class="menu-glass-panel">
+                <!-- Header Section -->
+                <div class="menu-header">
+                    <h1>🐍 Snake Ultimate</h1>
+                    <p id="menuInstructions">
+                        Use WASD / Arrows to move<br>
+                        SPACE to Pause<br>
+                        Collect food to grow & earn gold
+                    </p>
+                </div>
 
-            <!-- Center Play Button -->
-            <button id="startBtn" class="btn-play-large">▶ Play</button>
+                <!-- Center Play Button -->
+                <button id="startBtn" class="btn-play-large">▶ Play</button>
 
-            <!-- Footer Buttons -->
-            <div class="menu-footer">
-                <button id="shopBtn" class="btn-menu-item" style="background: linear-gradient(45deg, #ffb300, #ffcc00);">🛒 Shop</button>
-                <button id="slayerShopBtn" class="btn-menu-item" style="background: linear-gradient(45deg, #b71c1c, #ff5252);">⚔️ Slayer</button>
-                <button id="rebirthMenuBtn" class="btn-menu-item" style="background: linear-gradient(45deg, #d500f9, #aa00ff);">🌀 Rebirth</button>
-                <button id="guideBtn" class="btn-menu-item" style="background: linear-gradient(45deg, #9c27b0, #e040fb);">📜 Guide</button>
-                <button id="settingsBtn" class="btn-menu-item" style="background: linear-gradient(45deg, #607d8b, #78909c);">⚙️ Settings</button>
+                <!-- Footer Buttons -->
+                <div class="menu-footer">
+                    <button id="shopBtn" class="btn-menu-item btn-shop">🛒 Shop</button>
+                    <button id="slayerShopBtn" class="btn-menu-item btn-slayer">⚔️ Slayer</button>
+                    <button id="rebirthMenuBtn" class="btn-menu-item btn-rebirth-menu">🌀 Rebirth</button>
+                    <button id="guideBtn" class="btn-menu-item btn-guide">📜 Guide</button>
+                    <button id="settingsBtn" class="btn-menu-item btn-settings">⚙️ Settings</button>
+                </div>
             </div>
         </div>
 
@@ -192,6 +195,7 @@
                     <div class="settings-section-title" id="lblGraphics">🎨 Graphics & Performance</div>
                     <button id="toggleParticlesBtn">✨ Particles: ON</button>
                     <button id="toggleGlowBtn">💡 Glow: ON</button>
+                    <button id="toggleQualityBtn">💎 Quality: HIGH</button>
                     <button id="toggleBrightnessBtn">☀️ Brightness: 100%</button>
 
                     <div style="display: flex; gap: 10px; width: 100%;">

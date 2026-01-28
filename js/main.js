@@ -98,6 +98,9 @@ document.addEventListener('DOMContentLoaded', () => {
     toggleGlowBtn = document.getElementById('toggleGlowBtn');
     if(toggleGlowBtn) toggleGlowBtn.addEventListener('click', toggleGlow);
     
+    toggleQualityBtn = document.getElementById('toggleQualityBtn');
+    if(toggleQualityBtn) toggleQualityBtn.addEventListener('click', toggleQuality);
+
     toggleBrightnessBtn = document.getElementById('toggleBrightnessBtn');
     if(toggleBrightnessBtn) toggleBrightnessBtn.addEventListener('click', cycleBrightness);
 
@@ -167,7 +170,7 @@ function initBackgroundAnimation() {
 
     function createParticles() {
         particles = [];
-        const count = Math.floor((width * height) / 9000); // زيادة الكثافة قليلاً
+        const count = Math.floor((width * height) / 35000); // تحسين إضافي للأداء
         for (let i = 0; i < count; i++) {
             particles.push({
                 x: Math.random() * width,
@@ -182,6 +185,14 @@ function initBackgroundAnimation() {
     }
 
     function animate() {
+        // إذا كان وضع الجودة المنخفضة مفعلاً، أوقف الرسم المتحرك وارسم خلفية ثابتة
+        if (typeof lowQualityMode !== 'undefined' && lowQualityMode) {
+             ctx.clearRect(0, 0, width, height);
+             ctx.fillStyle = '#0f172a';
+             ctx.fillRect(0, 0, width, height);
+             requestAnimationFrame(animate);
+             return;
+        }
         ctx.clearRect(0, 0, width, height);
 
         // رسم تدرج لوني هادئ
@@ -225,19 +236,6 @@ function initBackgroundAnimation() {
             const alpha = p.alpha + Math.sin(p.pulse) * 0.1;
             ctx.fillStyle = `rgba(100, 200, 255, ${Math.max(0, alpha)})`;
             ctx.beginPath(); ctx.arc(p.x, p.y, p.size, 0, Math.PI * 2); ctx.fill();
-
-            // رسم خطوط بين النقاط القريبة
-            for (let j = index + 1; j < particles.length; j++) {
-                let p2 = particles[j];
-                let dx = p.x - p2.x;
-                let dy = p.y - p2.y;
-                let dist = Math.sqrt(dx*dx + dy*dy);
-                if (dist < 100) {
-                    ctx.strokeStyle = `rgba(100, 200, 255, ${0.1 * (1 - dist/100)})`;
-                    ctx.lineWidth = 0.5;
-                    ctx.beginPath(); ctx.moveTo(p.x, p.y); ctx.lineTo(p2.x, p2.y); ctx.stroke();
-                }
-            }
         });
 
         requestAnimationFrame(animate);

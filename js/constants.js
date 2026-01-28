@@ -76,6 +76,8 @@ const TRANSLATIONS = {
         scoreBonus: "💎 Score Bonus", scoreBonusDesc: "Increase base Score & Gold (+1%) [Max 250%]", 
         globalMult: "⚡ Global Multiplier", globalMultDesc: "Multiplies Score & Gold. Effect doubles every 10 levels!", 
         xpBonus: "🧠 XP Bonus", xpBonusDesc: "Increase XP gain (+1%) [Max 250%]", 
+        qualityHigh: "💎 Quality: HIGH",
+        qualityLow: "🚀 Quality: LOW",
          permRP1: "🌀 Rebirth Mastery I", permRP1Desc: "Permanent +5% RP gain per level",
         permRP2: "🌀 Rebirth Mastery II", permRP2Desc: "Permanent +10% RP gain per level",
         permSouls1: "👻 Soul Seeker I", permSouls1Desc: "Permanent +5% Souls gain per level",

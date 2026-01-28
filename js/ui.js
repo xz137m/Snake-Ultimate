@@ -170,6 +170,12 @@ function toggleGlow() {
     updateSettingsButtons();
 }
 
+function toggleQuality() {
+    lowQualityMode = !lowQualityMode;
+    localStorage.setItem('snakeLowQuality', lowQualityMode);
+    updateSettingsButtons();
+}
+
 function cycleBrightness() {
     brightnessLevel += 0.25;
     if (brightnessLevel > 1.5) brightnessLevel = 0.5;
@@ -184,6 +190,7 @@ function updateSettingsButtons() {
     toggleParticlesBtn.innerText = particlesEnabled ? t.particlesOn : t.particlesOff;
     if(toggleRangeBtn) toggleRangeBtn.innerText = showEatRange ? t.rangeOn : t.rangeOff;
     if(toggleGlowBtn) toggleGlowBtn.innerText = glowEnabled ? t.glowOn : t.glowOff;
+    if(toggleQualityBtn) toggleQualityBtn.innerText = lowQualityMode ? t.qualityLow : t.qualityHigh;
     if(toggleBrightnessBtn) toggleBrightnessBtn.innerText = `${t.brightness} ${Math.round(brightnessLevel * 100)}%`;
 }
 
@@ -528,6 +535,7 @@ window.toggleSound = toggleSound;
 window.toggleParticles = toggleParticles;
 window.toggleRange = toggleRange;
 window.toggleGlow = toggleGlow;
+window.toggleQuality = toggleQuality;
 window.cycleBrightness = cycleBrightness;
 window.openGuide = openGuide;
 window.closeGuide = closeGuide;

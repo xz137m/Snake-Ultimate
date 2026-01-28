@@ -46,6 +46,7 @@ var particlesEnabled = localStorage.getItem('snakeParticles') !== 'false';
 var showEatRange = localStorage.getItem('snakeShowRange') !== 'false';
 var glowEnabled = localStorage.getItem('snakeGlow') !== 'false';
 var brightnessLevel = parseFloat(localStorage.getItem('snakeBrightness')) || 1.0;
+var lowQualityMode = localStorage.getItem('snakeLowQuality') === 'true';
 var currentLanguage = localStorage.getItem('snakeLanguage') || 'en';
 
 // Audio
@@ -91,6 +92,6 @@ var canvas, ctx, minimapCanvas, minimapCtx, scoreElement, highScoreElement, coin
 var menuOverlay, shopOverlay, guideOverlay, settingsOverlay, rebirthOverlay, slayerShopOverlay;
 var startBtn, shopBtn, rebirthMenuBtn, guideBtn, settingsBtn, resetBtn, slayerShopBtn;
 var closeShopBtn, closeRebirthBtn, doRebirthBtn, closeGuideBtn, closeSettingsBtn, closeSlayerShopBtn;
-var toggleSoundBtn, toggleParticlesBtn, toggleRangeBtn, toggleGlowBtn, toggleBrightnessBtn;
+var toggleSoundBtn, toggleParticlesBtn, toggleRangeBtn, toggleGlowBtn, toggleBrightnessBtn, toggleQualityBtn;
 var langEnBtn, langArBtn;
 var progressFill, progressText, xpFill, xpText;
