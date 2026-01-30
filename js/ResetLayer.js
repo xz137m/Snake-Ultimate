@@ -5,25 +5,45 @@ function openRebirth() {
 }
 
 function calculateRebirthPoints() {
-    if (coins < 10000) return 0;
-    let base = Math.floor(Math.sqrt(coins) / 100);
+    if (coins < 1e15) return 0;
+    // Formula: sqrt(Gold / 1e15)
+    let base = Math.floor(Math.sqrt(coins / 1e15));
     let slayerRPMult = (1 + (slayerUpgrades.rp1 || 0) * 0.05) * (1 + (slayerUpgrades.rp2 || 0) * 0.10);
-    let mult = (1 + (prestigeUpgrades.permRP1 || 0) * 0.05) * (1 + (prestigeUpgrades.permRP2 || 0) * 0.10) * slayerRPMult;
+    let mult = (1 + (prestigeUpgrades.permRP1 || 0) * 0.5) * (1 + (prestigeUpgrades.permRP2 || 0) * 4.0) * slayerRPMult;
     return Math.floor(base * mult);
 }
 
 function performRebirth() {
+    const t = TRANSLATIONS[currentLanguage];
+    const requiredLevel = 25;
+    const requiredGold = 1e9 * Math.pow(10, rebirthCount);
+
+    if (playerLevel < requiredLevel) {
+        showNotification(t.rebirthLevelReq.replace('{0}', requiredLevel), 'error');
+        return;
+    }
+
+    if (coins < requiredGold) {
+        showNotification(t.rebirthGoldReq.replace('{0}', formatNumber(requiredGold)), 'error');
+        return;
+    }
+
     let earnedRP = calculateRebirthPoints();
-    if (earnedRP <= 0) return;
+    if (earnedRP <= 0) {
+        showNotification(`You need at least ${formatNumber(1e15)} Gold to gain Rebirth Points!`, 'warning');
+        return;
+    }
+
     showConfirmation(TRANSLATIONS[currentLanguage].confirmRebirth, () => {
         try {
             rebirthPoints += earnedRP;
+            rebirthCount++;
             coins = 0;
             score = 0;
             playerLevel = 1;
             currentXp = 0;
             prestigeLevel = 0;
-            upgrades = { foodCount: 0, scoreMult: 0, doublePoints: 0, xpMult: 0, growthBoost: 0, eatRange: 0, luckBoost: 0 };
+            upgrades = { foodCount: 0, scoreMult: 0, doublePoints: 0, xpMult: 0, growthBoost: 0, eatRange: 0, luckBoost: 0, soulsMult: 0, soulsExp: 0 };
             
             // Reset world size
             TILE_COUNT_X = 20 + playerLevel;
@@ -34,6 +54,7 @@ function performRebirth() {
             localStorage.setItem('snakeXp', currentXp);
             localStorage.setItem('snakeUpgrades', JSON.stringify(upgrades));
             localStorage.setItem('snakeRP', rebirthPoints);
+            localStorage.setItem('snakeRebirthCount', rebirthCount);
             
             if (typeof updateScore === 'function') updateScore();
             renderRebirthShop();
@@ -47,7 +68,16 @@ function performRebirth() {
 }
 
 function buyPrestigeUpgrade(id) {
-    let cost = Math.floor(10 * Math.pow(1.5, prestigeUpgrades[id]));
+    let baseCost = 10;
+    let scale = 1.2;
+    
+    // Power Upgrades (Type 2) have higher cost and scaling
+    if (id.endsWith('2')) {
+        baseCost = 1000;
+        scale = 1.8;
+    }
+
+    let cost = Math.floor(baseCost * Math.pow(scale, prestigeUpgrades[id]));
     if (rebirthPoints >= cost) {
         rebirthPoints -= cost;
         prestigeUpgrades[id]++;
@@ -63,7 +93,16 @@ function buyPrestigeUpgrade(id) {
 function buyMaxPrestigeUpgrade(id) {
     let bought = 0;
     while(true) {
-        let cost = Math.floor(10 * Math.pow(1.5, prestigeUpgrades[id]));
+        let baseCost = 10;
+        let scale = 1.2;
+        
+        // Power Upgrades (Type 2) have higher cost and scaling
+        if (id.endsWith('2')) {
+            baseCost = 1000;
+            scale = 1.8;
+        }
+
+        let cost = Math.floor(baseCost * Math.pow(scale, prestigeUpgrades[id]));
         if (rebirthPoints >= cost) {
             rebirthPoints -= cost;
             prestigeUpgrades[id]++;
@@ -87,31 +126,57 @@ function renderRebirthShop() {
     container.innerHTML = '';
     const t = TRANSLATIONS[currentLanguage];
     let potentialRP = calculateRebirthPoints();
-    document.getElementById('doRebirthBtn').innerText = t.rebirthBtn.replace('{0}', window.formatNumber(potentialRP));
+    const rebirthBtn = document.getElementById('doRebirthBtn');
+    rebirthBtn.innerText = t.rebirthBtn.replace('{0}', window.formatNumber(potentialRP));
     document.getElementById('rpShopDisplay').innerText = window.formatNumber(rebirthPoints);
+
+    const oldReq = document.getElementById('rebirth-req-text');
+    if (oldReq) oldReq.remove();
+
+    const requiredLevel = 25;
+    const requiredGold = 1e9 * Math.pow(10, rebirthCount);
+    const reqText = document.createElement('p');
+    reqText.id = 'rebirth-req-text';
+    reqText.style.color = '#ccc';
+    reqText.style.marginTop = '10px';
+    reqText.innerHTML = `Requires: Level ${requiredLevel} & <span style="color: #ffd700;">${formatNumber(requiredGold)} Gold</span>`;
+    rebirthBtn.after(reqText);
+
     const items = [
-        { id: 'permScore', name: t.permScore, desc: t.permScoreDesc, level: prestigeUpgrades.permScore },
-        { id: 'permXp', name: t.permXp, desc: t.permXpDesc, level: prestigeUpgrades.permXp },
+        { id: 'permGold1', name: t.permGold1, desc: t.permGold1Desc, level: prestigeUpgrades.permGold1 },
+        { id: 'permGold2', name: t.permGold2, desc: t.permGold2Desc, level: prestigeUpgrades.permGold2 },
         { id: 'permRP1', name: t.permRP1, desc: t.permRP1Desc, level: prestigeUpgrades.permRP1 },
         { id: 'permRP2', name: t.permRP2, desc: t.permRP2Desc, level: prestigeUpgrades.permRP2 },
         { id: 'permSouls1', name: t.permSouls1, desc: t.permSouls1Desc, level: prestigeUpgrades.permSouls1 },
-        { id: 'permSouls2', name: t.permSouls2, desc: t.permSouls2Desc, level: prestigeUpgrades.permSouls2 }
+        { id: 'permSouls2', name: t.permSouls2, desc: t.permSouls2Desc, level: prestigeUpgrades.permSouls2 },
+        { id: 'permXp', name: t.permXp, desc: t.permXpDesc, level: prestigeUpgrades.permXp }
     ];
     items.forEach(item => {
-        let dynamicInfo = '';
-        let bonusVal = '';
-        if (item.id === 'permScore') bonusVal = `+${item.level * 10}%`;
-        else if (item.id === 'permXp') bonusVal = `+${item.level * 10}%`;
-        else if (item.id === 'permRP1') bonusVal = `+${item.level * 5}%`;
-        else if (item.id === 'permRP2') bonusVal = `+${item.level * 10}%`;
-        else if (item.id === 'permSouls1') bonusVal = `+${item.level * 5}%`;
-        else if (item.id === 'permSouls2') bonusVal = `+${item.level * 10}%`;
+        const getBonus = (id, lvl) => {
+            if (id === 'permGold1') return `x${window.formatNumber(1 + lvl * 0.5)}`;
+            if (id === 'permGold2') return `x${window.formatNumber(1 + lvl * 4.0)}`;
+            if (id === 'permRP1') return `x${window.formatNumber(1 + lvl * 0.5)}`;
+            if (id === 'permRP2') return `x${window.formatNumber(1 + lvl * 4.0)}`;
+            if (id === 'permSouls1') return `x${window.formatNumber(1 + lvl * 0.5)}`;
+            if (id === 'permSouls2') return `x${window.formatNumber(1 + lvl * 4.0)}`;
+            if (id === 'permXp') return `+${lvl * 10}%`;
+            return '';
+        };
 
-        if (bonusVal) {
-             dynamicInfo = `<br><span style="color: #00ff00; font-weight: bold; font-size: 0.9em;">${t.currentBonus} ${bonusVal}</span>`;
+        let currentBonus = getBonus(item.id, item.level);
+        let nextBonus = getBonus(item.id, item.level + 1);
+
+        let dynamicInfo = `<br><span style="color: #00ff00; font-weight: bold; font-size: 0.9em;">Current: ${currentBonus}</span>`;
+        dynamicInfo += `<br><span style="color: #00ffff; font-weight: bold; font-size: 0.9em;">Next: ${nextBonus}</span>`;
+
+        let baseCost = 10;
+        let scale = 1.2;
+        if (item.id.endsWith('2')) {
+            baseCost = 1000;
+            scale = 1.8;
         }
 
-        let cost = Math.floor(10 * Math.pow(1.5, item.level));
+        let cost = Math.floor(baseCost * Math.pow(scale, item.level));
         const div = document.createElement('div');
         div.className = 'shop-item';
         div.style.borderColor = '#e040fb';

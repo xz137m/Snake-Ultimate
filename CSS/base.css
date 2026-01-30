@@ -11,7 +11,7 @@ body {
     height: 100vh;
     margin: 0;
     overflow: hidden;
-    user-select: none; /* منع التحديد أثناء اللعب باللمس */
+    user-select: none;
 }
 
 @keyframes gradientBG {
@@ -27,7 +27,6 @@ body {
     gap: 15px;
 }
 
-/* --- Menu Styling --- */
 #menu-overlay {
     background: rgba(0, 0, 0, 0.4) !important;
     backdrop-filter: blur(4px);
@@ -82,7 +81,6 @@ body {
     font-weight: 500;
 }
 
-/* Play Button */
 .btn-play-large {
     background: linear-gradient(90deg, #00ff88, #00b8ff);
     border: none;
@@ -100,7 +98,6 @@ body {
     overflow: hidden;
 }
 
-/* تأثير اللمعان لزر التشغيل */
 .btn-play-large::after {
     content: '';
     position: absolute;
@@ -122,7 +119,6 @@ body {
     transition: 0.7s ease-in-out;
 }
 
-/* Footer Buttons Grid */
 .menu-footer {
     display: flex;
     gap: 15px;
@@ -148,7 +144,6 @@ body {
     justify-content: center;
 }
 
-/* ألوان الأزرار الخاصة */
 .btn-shop { background: linear-gradient(45deg, #ffb300, #ffcc00); }
 .btn-slayer { background: linear-gradient(45deg, #b71c1c, #ff5252); }
 .btn-rebirth-menu { background: linear-gradient(45deg, #d500f9, #aa00ff); }
@@ -162,13 +157,11 @@ body {
     z-index: 2;
 }
 
-/* تأثير توهج خفيف عند الضغط */
 .btn-menu-item:active {
     transform: translateY(1px);
     filter: brightness(0.9);
 }
 
-/* --- Mobile Responsiveness (Main Menu) --- */
 @media (max-width: 768px) {
     .menu-glass-panel {
         padding: 30px 20px;
@@ -177,7 +170,7 @@ body {
     }
 
     .menu-header h1 {
-        font-size: 3rem; /* تصغير العنوان */
+        font-size: 3rem;
     }
 
     .btn-play-large {

@@ -21,28 +21,32 @@ function renderShopItems() {
         { id: 'soulsExp', baseCost: 5000, name: t.soulsExp, desc: t.soulsExpDesc, level: upgrades.soulsExp, maxLevel: UPGRADE_LIMITS.soulsExp, cost: getUpgradeCost(5000, upgrades.soulsExp, 'soulsExp') }
     ];
     items.forEach(item => {
-        // حساب وعرض التأثير الحالي لجميع التطويرات بلون مميز
-        let dynamicInfo = '';
-        let bonusVal = '';
-        
-        if (item.id === 'foodCount') bonusVal = `+${item.level}`;
-        else if (item.id === 'scoreMult') bonusVal = `+${item.level}%`;
-        else if (item.id === 'doublePoints') {
-            let mult = (item.level === 0) ? 1 : item.level * Math.pow(2, Math.floor(item.level / 10));
-            bonusVal = `x${window.formatNumber(mult)}`;
-        }
-        else if (item.id === 'xpMult') bonusVal = `+${item.level}%`;
-        else if (item.id === 'growthBoost') bonusVal = `+${item.level}`;
-        else if (item.id === 'eatRange') bonusVal = `+${item.level}`;
-        else if (item.id === 'luckBoost') bonusVal = `Lvl ${item.level}`;
-        else if (item.id === 'soulsMult') bonusVal = `+${item.level * 5}%`;
-        else if (item.id === 'soulsExp') {
-            let bonus = item.level * Math.pow(2, Math.floor(item.level / 10));
-            bonusVal = `+${window.formatNumber(bonus)}`;
-        }
+        // Helper to calculate bonus based on level
+        const getBonus = (id, lvl) => {
+            if (id === 'foodCount') return `+${lvl}`;
+            if (id === 'scoreMult') return `+${lvl}%`;
+            if (id === 'doublePoints') {
+                let mult = (lvl === 0) ? 1 : lvl * Math.pow(2, Math.floor(lvl / 10));
+                return `x${window.formatNumber(mult)}`;
+            }
+            if (id === 'xpMult') return `+${lvl}%`;
+            if (id === 'growthBoost') return `+${lvl}`;
+            if (id === 'eatRange') return `+${lvl}`;
+            if (id === 'luckBoost') return `Lvl ${lvl}`;
+            if (id === 'soulsMult') return `+${lvl * 5}%`;
+            if (id === 'soulsExp') {
+                let bonus = lvl * Math.pow(2, Math.floor(lvl / 10));
+                return `+${window.formatNumber(bonus)}`;
+            }
+            return '';
+        };
 
-        if (bonusVal) {
-             dynamicInfo = `<br><span style="color: #00ff00; font-weight: bold; font-size: 0.9em;">${t.currentBonus} ${bonusVal}</span>`;
+        let currentBonus = getBonus(item.id, item.level);
+        let nextBonus = item.level < item.maxLevel ? getBonus(item.id, item.level + 1) : "MAX";
+        
+        let dynamicInfo = `<br><span style="color: #00ff00; font-weight: bold; font-size: 0.9em;">Current: ${currentBonus}</span>`;
+        if (item.level < item.maxLevel) {
+            dynamicInfo += `<br><span style="color: #00ffff; font-weight: bold; font-size: 0.9em;">Next: ${nextBonus}</span>`;
         }
 
         const div = document.createElement('div');
@@ -73,32 +77,6 @@ function buyMaxUpgrade(id, baseCost) {
         if (coins >= cost) buyUpgrade(id, cost);
         return;
     }
-    if (id === 'luckBoost') {
-        let n = 0;
-        let totalCost = 0;
-        let tempLevel = currentLevel;
-        while (tempLevel < maxLevel) {
-            let cost = getUpgradeCost(baseCost, tempLevel, id);
-            if (coins >= totalCost + cost) {
-                totalCost += cost;
-                n++;
-                tempLevel++;
-            } else {
-                break;
-            }
-        }
-        if (n > 0) {
-            coins -= totalCost;
-            upgrades[id] += n;
-            localStorage.setItem('snakeCoins', coins);
-            localStorage.setItem('snakeUpgrades', JSON.stringify(upgrades));
-            updateScore();
-            renderShopItems();
-            playSound('eat');
-            showNotification(`✅ Purchased ${n} Upgrades!`, 'success');
-        }
-        return;
-    }
 
     let n = 0;
     let totalCost = 0;
@@ -121,7 +99,7 @@ function buyMaxUpgrade(id, baseCost) {
         updateScore();
         renderShopItems();
         playSound('eat');
-        showNotification(`✅ Purchased ${n} Upgrades!`, 'success');
+        showNotification(`✅ Purchased  Upgrades!`, 'success');
     }
 }
 

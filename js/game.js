@@ -1,11 +1,50 @@
 let autoSaveInterval;
-let timeSinceWorldUpdate = 0; // مؤقت لتحديث العالم (الأعداء)
+let timeSinceWorldUpdate = 0;
+let sessionStartTime = Date.now();
+const CHUNK_RADIUS = 65; // Expanded Active Zone (~1300px)
+const MAX_ACTIVE_FRUITS = 150; // Hard limit for performance
+const SPAWN_BATCH_SIZE = 5; // Max fruits to spawn per frame
 
 function resetGameProgress() {
-    showConfirmation(TRANSLATIONS[currentLanguage].confirmReset, () => {
+    if (confirm(TRANSLATIONS[currentLanguage].confirmReset)) {
+        // 1. Clear Local Storage
         localStorage.clear();
-        location.reload();
-    });
+        
+        // 2. Stop Animations & Loops
+        if (renderLoopId) cancelAnimationFrame(renderLoopId);
+        if (autoSaveInterval) clearInterval(autoSaveInterval);
+        
+        // 3. Reset Variables
+        coins = 0;
+        souls = 0;
+        rebirthPoints = 0;
+        rebirthCount = 0;
+        playerLevel = 1;
+        currentXp = 0;
+        highScore = 0;
+        score = 0;
+        enemiesKilled = 0;
+        killStreak = 0;
+        prestigeLevel = 0;
+        growthBuffer = 0;
+        
+        // Reset Upgrades
+        upgrades = { foodCount: 0, scoreMult: 0, doublePoints: 0, xpMult: 0, growthBoost: 0, eatRange: 0, luckBoost: 0, soulsMult: 0, soulsExp: 0 };
+        prestigeUpgrades = { permGold1: 0, permGold2: 0, permSouls1: 0, permSouls2: 0, permRP1: 0, permRP2: 0, permXp: 0 };
+        slayerUpgrades = { maxHearts: 0, maxStamina: 0, staminaRegen: 0, gold1: 0, gold2: 0, rp1: 0, rp2: 0, souls1: 0, souls2: 0, infiniteStamina: 0 };
+        
+        // Reset World Size
+        TILE_COUNT_X = 20 + playerLevel;
+        TILE_COUNT_Y = 20 + playerLevel;
+        
+        // 4. Update UI Immediately
+        if (highScoreElement) highScoreElement.innerText = formatNumber(highScore);
+        
+        // 5. Restart Game (This handles UI updates and clearing arrays)
+        startGame();
+        
+        if (typeof closeSettings === 'function') closeSettings();
+    }
 }
 
 function initGame() {
@@ -14,19 +53,20 @@ function initGame() {
     floatingTexts = [];
     foods = [];
     projectiles = [];
-    aiSnakes = []; // تهيئة مصفوفة الأعداء
+    aiSnakes = [];
     velocity = { x: 1, y: 0 };
     nextVelocity = { x: 1, y: 0 };
     score = 0;
     enemiesKilled = 0;
-    bossSpawnTimestamp = Date.now(); // يرسبن فوراً عند بدء اللعبة
+    killStreak = 0;
+    auraTimer = 0;
+    bossSpawnTimestamp = Date.now();
     growthBuffer = 0;
     prestigeLevel = 0;
     speed = 110;
     isPaused = false;
     isGameOver = false;
     
-    // Reset Combat Stats
     currentHearts = 1 + slayerUpgrades.maxHearts;
     currentStamina = 100 + (slayerUpgrades.maxStamina * 20);
     isSprinting = false;
@@ -35,10 +75,12 @@ function initGame() {
     isPlayerInvulnerable = false;
     playerInvulnerabilityTime = 0;
 
-    const foodCount = 3 + upgrades.foodCount;
-    for(let i=0; i<foodCount; i++) {
-        placeFood();
+    petInstances = [];
+    if (activePetIds && Array.isArray(activePetIds)) {
+        activePetIds.forEach(id => petInstances.push(new Pet(id)));
     }
+
+    manageChunks(); // Initial spawn in active zone
     updateScore();
     updateProgress();
     updateXpBar();
@@ -47,40 +89,83 @@ function initGame() {
     updateStaminaBar();
 }
 
-function placeFood() {
-    const unlockedIndices = [];
-    for(let i=0; i<FRUIT_TYPES.length; i++) {
-        if(playerLevel >= FRUIT_TYPES[i].reqLevel) {
-            unlockedIndices.push(i);
+function getWrappedDistance(p1, p2) {
+    let dx = Math.abs(p1.x - p2.x);
+    let dy = Math.abs(p1.y - p2.y);
+    if (dx > TILE_COUNT_X / 2) dx = TILE_COUNT_X - dx;
+    if (dy > TILE_COUNT_Y / 2) dy = TILE_COUNT_Y - dy;
+    return Math.sqrt(dx*dx + dy*dy);
+}
+
+function manageChunks() {
+    if (snake.length === 0) return;
+    const head = snake[0];
+    
+    // 1. Culling: Remove fruits outside active chunk
+    for (let i = foods.length - 1; i >= 0; i--) {
+        if (getWrappedDistance(head, foods[i]) > CHUNK_RADIUS) {
+            foods.splice(i, 1);
         }
     }
+
+    // 2. Density Control: Calculate target density
+    const targetDensity = Math.min(3 + upgrades.foodCount, MAX_ACTIVE_FRUITS);
+    
+    // 3. Spawning: Refill active chunk
+    let spawned = 0;
+    while (foods.length < targetDensity && spawned < SPAWN_BATCH_SIZE) {
+        spawnFoodInChunk();
+        spawned++;
+    }
+}
+
+function spawnFoodInChunk() {
+    const head = snake[0];
+    
+    // Determine spawn angle (Biased towards movement direction)
+    let angle;
+    if (velocity.x === 0 && velocity.y === 0) {
+        angle = Math.random() * Math.PI * 2;
+    } else {
+        const moveAngle = Math.atan2(velocity.y, velocity.x);
+        // Spawn in a 180 degree arc in front of player
+        angle = moveAngle + (Math.random() - 0.5) * (Math.PI * 1.2); 
+    }
+
+    // Smart Distribution: Spawn in the outer ring of the chunk
+    // This prevents fruits from popping in within the viewport
+    const minSpawnDist = 40; // Outside typical viewport radius
+    const dist = minSpawnDist + Math.random() * (CHUNK_RADIUS - minSpawnDist);
+    
+    let fx = head.x + Math.cos(angle) * dist;
+    let fy = head.y + Math.sin(angle) * dist;
+
+    // Wrap coordinates
+    fx = Math.round(fx);
+    fy = Math.round(fy);
+    while (fx < 0) fx += TILE_COUNT_X;
+    while (fx >= TILE_COUNT_X) fx -= TILE_COUNT_X;
+    while (fy < 0) fy += TILE_COUNT_Y;
+    while (fy >= TILE_COUNT_Y) fy -= TILE_COUNT_Y;
+
+    // Collision check (Snake & Existing Food)
+    for (let part of snake) if (part.x === fx && part.y === fy) return;
+    for (let f of foods) if (f.x === fx && f.y === fy) return;
+
+    // Select Fruit Type (Rarity Logic)
+    const unlockedIndices = [];
+    for(let i=0; i<FRUIT_TYPES.length; i++) if(playerLevel >= FRUIT_TYPES[i].reqLevel) unlockedIndices.push(i);
+    
     let totalWeight = 0;
-    let decay = 1.0 + (0.2 / (1 + upgrades.luckBoost * 0.005));
-    const weights = unlockedIndices.map(i => {
-        const w = 100 / Math.pow(decay, i); 
-        totalWeight += w;
-        return w;
-    });
+    let levelPenalty = playerLevel * 0.005;
+    let decay = Math.max(1.01, 1.2 - (upgrades.luckBoost * 0.02) + levelPenalty);
+    const weights = unlockedIndices.map(i => { const w = 100 / Math.pow(decay, i); totalWeight += w; return w; });
+    
     let randomVal = Math.random() * totalWeight;
     let type = unlockedIndices[0];
-    for(let i=0; i<weights.length; i++) {
-        randomVal -= weights[i];
-        if(randomVal <= 0) {
-            type = unlockedIndices[i];
-            break;
-        }
-    }
-    let newFood = {
-        x: Math.floor(Math.random() * TILE_COUNT_X),
-        y: Math.floor(Math.random() * TILE_COUNT_Y),
-        type: type
-    };
-    for (let part of snake) {
-        if (part.x === newFood.x && part.y === newFood.y) {
-            return placeFood();
-        }
-    }
-    foods.push(newFood);
+    for(let i=0; i<weights.length; i++) { randomVal -= weights[i]; if(randomVal <= 0) { type = unlockedIndices[i]; break; } }
+
+    foods.push({ x: fx, y: fy, type: type });
 }
 
 function startGame() {
@@ -88,13 +173,10 @@ function startGame() {
     initGame();
     if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
     if (audioCtx.state === 'suspended') audioCtx.resume();
-    // إيقاف الحلقات القديمة إذا كانت موجودة
     if (renderLoopId) cancelAnimationFrame(renderLoopId);
-    // بدء حلقة اللعبة الجديدة
     lastUpdateTime = 0;
     timeSinceLastUpdate = 0;
     
-    // بدء الحفظ التلقائي كل 30 ثانية
     if (autoSaveInterval) clearInterval(autoSaveInterval);
     autoSaveInterval = setInterval(saveGame, 30000);
     
@@ -103,15 +185,15 @@ function startGame() {
 
 function gameOver() {
     cancelAnimationFrame(renderLoopId);
-    if (autoSaveInterval) clearInterval(autoSaveInterval); // إيقاف الحفظ التلقائي عند الخسارة
-    renderLoopId = null; // منع استئناف اللعبة
+    if (autoSaveInterval) clearInterval(autoSaveInterval);
+    renderLoopId = null;
     isGameOver = true;
     playSound('over');
     if (score > highScore) {
         highScore = score;
         highScoreElement.innerText = formatNumber(highScore);
     }
-    saveGame(); // حفظ نهائي عند الخسارة
+    saveGame();
     const t = TRANSLATIONS[currentLanguage];
     menuOverlay.innerHTML = `
         <h1 style="color: #ff3366">${t.gameOver}</h1>
@@ -124,31 +206,28 @@ function gameOver() {
 }
 
 function updateSnake(movePlayer, moveWorld) {
-    let head = snake[0]; // الرأس الحالي
-
-    // 1. حركة اللاعب (فقط إذا كان دوره)
+    let head = snake[0];
     if (movePlayer) {
         velocity = { ...nextVelocity };
         head = { x: snake[0].x + velocity.x, y: snake[0].y + velocity.y };
         
-        // التفاف حول الجدران
         if (head.x < 0) head.x = TILE_COUNT_X - 1;
         if (head.x >= TILE_COUNT_X) head.x = 0;
         if (head.y < 0) head.y = TILE_COUNT_Y - 1;
         if (head.y >= TILE_COUNT_Y) head.y = 0;
         
-        // التحقق من التصادم مع الذات
         for (let part of snake) {
             if (head.x === part.x && head.y === part.y) {
                 gameOver();
                 return;
             }
         }
+        
+        // Update chunks as player moves
+        manageChunks();
     }
 
-    // 2. تحديث العالم (الأعداء والمقذوفات) - مستقل عن سرعة اللاعب
     if (moveWorld) {
-        // --- تحديث مؤقت الزعيم ---
         const bossTimerEl = document.getElementById('bossTimerDisplay');
         const now = Date.now();
         const activeBosses = aiSnakes.filter(ai => ai.isBoss && !ai.isDead);
@@ -163,93 +242,52 @@ function updateSnake(movePlayer, moveWorld) {
             bossTimerEl.innerText = `👹 Boss: ${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
             bossTimerEl.style.color = "#e040fb";
 
-            // ترسيب الزعيم (3 رؤوس) عند انتهاء الوقت
             if (timeLeft <= 0) {
-                // إضافة زعيم واحد
                 aiSnakes.push(new AiSnake(true));
-                playSound('over'); // صوت تحذيري
-                // سيتم إعادة تعيين الوقت فقط عندما يموتون جميعاً
-                bossSpawnTimestamp = now + 999999999; // إيقاف المؤقت مؤقتاً
+                playSound('over');
+                bossSpawnTimestamp = now + 999999999;
             }
         }
 
-        // --- منطق AI SNAKE ---
-        // مستويات ظهور الأعداء (15, 25, 40, 60, 80...)
         const aiSpawnLevels = [15, 25, 40, 60, 80, 100, 125, 150];
         let targetAiCount = 0;
         for (let lvl of aiSpawnLevels) {
             if (playerLevel >= lvl) targetAiCount++;
         }
         
-        // إضافة أعداء جدد إذا لزم الأمر
         const normalSnakes = aiSnakes.filter(ai => !ai.isBoss).length;
-        while (normalSnakes < targetAiCount && aiSnakes.length < targetAiCount + 1) { // +1 للزعيم
+        while (normalSnakes < targetAiCount && aiSnakes.length < targetAiCount + 1) {
             aiSnakes.push(new AiSnake());
-            break; // إضافة واحد في كل إطار لتجنب التعليق
+            break;
         }
 
-        // تحديث حركة الأعداء والتحقق من التصادم
         let bossesDiedThisFrame = false;
         for (let ai of aiSnakes) {
             ai.update();
             
             if (ai.isDead) continue;
 
-            // هل اصطدم رأس العدو بجسم اللاعب؟ (يموت العدو)
             if (ai.body.length > 0) {
-                // إذا كان في وضع الحماية، لا يتضرر
                 if (ai.isInvulnerable) continue;
 
                 const aiHead = ai.body[0];
                 for (let part of snake) {
                     if (aiHead.x === part.x && aiHead.y === part.y) {
-                        ai.health--; // إنقاص صحة العدو
-                        if (ai.health <= 0) {
-                            // العدو مات
-                            ai.die();
-                            enemiesKilled++;
-                            
-                            // تفعيل موجة صدمة عند موقع موت العدو
-                            createShockwave(aiHead.x * GRID_SIZE + GRID_SIZE/2, aiHead.y * GRID_SIZE + GRID_SIZE/2, ai.headColor);
-                            
-                            // Gain Souls
-                            let soulsGain = ai.isBoss ? 50 : 5;
-                            
-                            // تطبيق تطويرات الأرواح
-                            let sMult = 1 + (upgrades.soulsMult * 0.05); // زيادة 5% لكل مستوى
-                            let lvl = upgrades.soulsExp;
-                            let sFlat = lvl * Math.pow(2, Math.floor(lvl / 10)); // الحسبة الجديدة: المستوى * المضاعف
-                            let prestigeSoulsMult = (1 + (prestigeUpgrades.permSouls1 || 0) * 0.05) * (1 + (prestigeUpgrades.permSouls2 || 0) * 0.10);
-                            let slayerSoulsMult = (1 + (slayerUpgrades.souls1 || 0) * 0.05) * (1 + (slayerUpgrades.souls2 || 0) * 0.10);
-                            
-                            soulsGain = Math.floor(soulsGain * sMult * prestigeSoulsMult * slayerSoulsMult) + sFlat;
-
-                            souls += soulsGain;
-                            localStorage.setItem('snakeSouls', souls);
-                            
-                            updateKillCounter();
-                            
-                            // مكافآت القتل
-                            let rewardMult = ai.isBoss ? 25 : 1; // الزعيم يعطي مكافأة قتل ضخمة
-                            let slayerGoldMult = (1 + (slayerUpgrades.gold1 || 0) * 0.05) * (1 + (slayerUpgrades.gold2 || 0) * 0.10);
-                            score += 500 * rewardMult;
-                            let goldGained = Math.floor(100 * rewardMult * slayerGoldMult);
-                            coins += goldGained;
-                            createFloatingText(aiHead.x * GRID_SIZE, aiHead.y * GRID_SIZE, `+${formatNumber(goldGained)} Gold`, '#ffd700');
-                            createFloatingText(aiHead.x * GRID_SIZE, aiHead.y * GRID_SIZE - 20, `+${formatNumber(50 * rewardMult)} XP`, '#00ffff');
-                            currentXp += 50 * rewardMult;
-                            updateScore(); // تحديث الواجهة فوراً
-                            
+                        ai.health--;
+                        let slayerGoldMult = (1 + (slayerUpgrades.gold1 || 0) * 0.05) * (1 + (slayerUpgrades.gold2 || 0) * 0.10);
+                        
+                        // Normal enemies die immediately (ignore health if not boss)
+                        if (!ai.isBoss || ai.health <= 0) {
+                            grantKillRewards(ai, slayerGoldMult);
                             if (ai.isBoss) bossesDiedThisFrame = true;
                         } else {
-                            // العدو تضرر فقط (الزعيم)
-                            let rewardMult = 5; // مكافأة ضربة
+                            // Only Bosses get invulnerability frames
+                            let rewardMult = 5;
                             score += 500 * rewardMult;
                             let goldGained = Math.floor(100 * rewardMult * slayerGoldMult);
                             coins += goldGained;
                             currentXp += 50 * rewardMult;
                             
-                            // تفعيل الحماية والمؤقت
                             ai.isInvulnerable = true;
                             ai.invulnerabilityTime = Date.now();
                         }
@@ -261,13 +299,10 @@ function updateSnake(movePlayer, moveWorld) {
             }
         }
 
-        // --- تحديث المقذوفات والتحقق من التصادم ---
         for (let i = projectiles.length - 1; i >= 0; i--) {
             const p = projectiles[i];
             p.update();
-            // هل المقذوف لمس رأس اللاعب؟ (نستخدم الرأس الحالي)
             const currentHead = snake[0];
-            // استخدام المسافة للتصادم بدلاً من التطابق التام، لأن القذيفة سريعة وقد تتجاوز المربع
             const dist = Math.sqrt(Math.pow(p.x - currentHead.x, 2) + Math.pow(p.y - currentHead.y, 2));
             if (dist < 0.8) {
                 takeDamage();
@@ -276,20 +311,15 @@ function updateSnake(movePlayer, moveWorld) {
             if (p.life <= 0) projectiles.splice(i, 1);
         }
 
-        // التحقق مما إذا ماتت كل الزعماء لتجديد المؤقت
         if (bossesDiedThisFrame) {
             const remainingBosses = aiSnakes.filter(ai => ai.isBoss && !ai.isDead);
             if (remainingBosses.length === 0) {
-                // ماتت كل الرؤوس، إعادة تعيين المؤقت
-                bossSpawnTimestamp = Date.now() + 180000; // 3 دقائق
-                // إزالة الزعماء الميتين من المصفوفة لتنظيف الذاكرة
+                bossSpawnTimestamp = Date.now() + BOSS_SPAWN_COOLDOWN;
                 aiSnakes = aiSnakes.filter(ai => !ai.isBoss || !ai.isDead);
             }
         }
     }
 
-    // 3. التحقق من تصادم اللاعب مع الأعداء (اللاعب يصدم العدو)
-    // يتم التحقق فقط إذا تحرك اللاعب
     if (movePlayer) {
         for (let ai of aiSnakes) {
             if (ai.isDead) continue;
@@ -302,7 +332,6 @@ function updateSnake(movePlayer, moveWorld) {
         }
     }
 
-    // 4. تنفيذ حركة اللاعب وأكل الطعام
     if (movePlayer) {
         snake.unshift(head);
         let eatenIndex = -1;
@@ -326,15 +355,24 @@ function updateSnake(movePlayer, moveWorld) {
             let prestigeMult = Math.pow(2, prestigeLevel);
             let dpLvl = upgrades.doublePoints;
             let shopMult = (dpLvl === 0) ? 1 : dpLvl * Math.pow(2, Math.floor(dpLvl / 10));
-            let levelMult = Math.pow(2, playerLevel - 1);
-            let xpUpgradeMult = (1 + Math.min(upgrades.xpMult, 250) * 0.01);
-            let permScoreMult = (1 + (prestigeUpgrades.permScore || 0) * 0.1);
+            let levelMult = Math.pow(1.5, playerLevel - 1);
+            let xpUpgradeMult = 1 + Math.log10(1 + upgrades.xpMult) * 0.5;
+            let permGoldMult = (1 + (prestigeUpgrades.permGold1 || 0) * 0.5) * (1 + (prestigeUpgrades.permGold2 || 0) * 4.0);
             let permXpMult = (1 + (prestigeUpgrades.permXp || 0) * 0.1);
-            let scoreUpgrade = (1 + Math.min(upgrades.scoreMult, 250) * 0.01);
+            let scoreUpgrade = 1 + Math.log10(1 + upgrades.scoreMult) * 0.5;
             let slayerGoldMult = (1 + (slayerUpgrades.gold1 || 0) * 0.05) * (1 + (slayerUpgrades.gold2 || 0) * 0.10);
-            let points = (fruit.points * scoreUpgrade) * shopMult * prestigeMult * levelMult * permScoreMult * slayerGoldMult;
-            let gold = (fruit.gold * scoreUpgrade) * shopMult * prestigeMult * levelMult * permScoreMult * slayerGoldMult;
-            let xpGain = fruit.xp * prestigeMult * xpUpgradeMult * permXpMult;
+            let points = (fruit.points * scoreUpgrade) * shopMult * prestigeMult * levelMult * permGoldMult * slayerGoldMult;
+            let gold = (fruit.gold * scoreUpgrade) * shopMult * prestigeMult * levelMult * permGoldMult * slayerGoldMult;
+            
+            // Diminishing XP for low level fruits
+            let levelDiff = Math.max(0, playerLevel - fruit.reqLevel);
+            let dimFactor = 1 / (1 + levelDiff * 0.15);
+            
+            // Time Scaling (Decay over session time)
+            let sessionMinutes = (Date.now() - sessionStartTime) / 60000;
+            let timeFactor = Math.max(0.1, 1 - (sessionMinutes * 0.002));
+
+            let xpGain = fruit.xp * prestigeMult * xpUpgradeMult * permXpMult * dimFactor * timeFactor;
             score += Math.floor(points);
             let goldGained = Math.floor(gold);
             coins += goldGained;
@@ -344,7 +382,8 @@ function updateSnake(movePlayer, moveWorld) {
                 let xpGained = Math.floor(xpGain);
                 currentXp += xpGained;
                 if (xpGained > 0) createFloatingText(foods[eatenIndex].x * GRID_SIZE, foods[eatenIndex].y * GRID_SIZE - 20, `+${formatNumber(xpGained)} XP`, '#00ffff');
-                let xpNeeded = Math.floor(100 * Math.pow(1.2, playerLevel - 1));
+                // New Exponential XP Formula: Base * Level^2.5
+                let xpNeeded = Math.floor(1000 * Math.pow(playerLevel, 2.5));
                 if (currentXp >= xpNeeded) {
                     currentXp -= xpNeeded;
                     playerLevel++;
@@ -360,9 +399,7 @@ function updateSnake(movePlayer, moveWorld) {
             playSound('eat');
             createParticles(foods[eatenIndex].x * GRID_SIZE + GRID_SIZE/2, foods[eatenIndex].y * GRID_SIZE + GRID_SIZE/2, fruit.color);
             foods.splice(eatenIndex, 1);
-            placeFood();
             
-            // زيادة السرعة (للأعداء واللاعب معاً)
             if (score % 50 === 0 && speed > 30) {
                 speed -= 2;
             }
@@ -374,12 +411,11 @@ function updateSnake(movePlayer, moveWorld) {
             }
         }
         
-        // منطق التطور الجديد: إعادة تعيين الطول عند الوصول للهدف
         const thresholds = [50, 75, 100, 150, 250, 400, 600, 900, 1300, 2000];
         if (prestigeLevel < thresholds.length) {
             if (snake.length >= thresholds[prestigeLevel]) {
                 prestigeLevel++;
-                snake = [snake[0]]; // إعادة الثعبان للرأس فقط (Reset)
+                snake = [snake[0]];
                 playSound('eat');
                 updateProgress();
             }
@@ -387,21 +423,55 @@ function updateSnake(movePlayer, moveWorld) {
     }
 }
 
+function grantKillRewards(ai, slayerGoldMult) {
+    ai.die();
+    enemiesKilled++;
+    killStreak++; // Increment Aura Streak
+    
+    const aiHead = ai.body.length > 0 ? ai.body[0] : {x:0, y:0};
+    createShockwave(aiHead.x * GRID_SIZE + GRID_SIZE/2, aiHead.y * GRID_SIZE + GRID_SIZE/2, ai.headColor);
+    
+    let soulsGain = ai.isBoss ? 50 : 1; // Normal enemies give 1 Soul
+    
+    let sMult = 1 + Math.log10(1 + upgrades.soulsMult) * 0.5;
+    let lvl = upgrades.soulsExp;
+    let sFlat = lvl * Math.pow(2, Math.floor(lvl / 10));
+    let prestigeSoulsMult = (1 + (prestigeUpgrades.permSouls1 || 0) * 0.5) * (1 + (prestigeUpgrades.permSouls2 || 0) * 4.0);
+    let slayerSoulsMult = (1 + (slayerUpgrades.souls1 || 0) * 0.05) * (1 + (slayerUpgrades.souls2 || 0) * 0.10);
+    
+    soulsGain = Math.floor(soulsGain * sMult * prestigeSoulsMult * slayerSoulsMult) + sFlat;
+    souls += soulsGain;
+    localStorage.setItem('snakeSouls', souls);
+    
+    updateKillCounter();
+    
+    let rewardMult = ai.isBoss ? 25 : 1;
+    score += 500 * rewardMult;
+    let goldGained = Math.floor(100 * rewardMult * slayerGoldMult);
+    coins += goldGained;
+    createFloatingText(aiHead.x * GRID_SIZE, aiHead.y * GRID_SIZE, `+${formatNumber(goldGained)} Gold`, '#ffd700');
+    createFloatingText(aiHead.x * GRID_SIZE, aiHead.y * GRID_SIZE - 20, `+${formatNumber(50 * rewardMult)} XP`, '#00ffff');
+    currentXp += 50 * rewardMult;
+    updateScore();
+}
+
 function takeDamage() {
-    // إذا كان اللاعب في وضع الحماية، لا يتضرر
     if (typeof isPlayerInvulnerable !== 'undefined' && isPlayerInvulnerable) return;
+
+    // Purple Slayer Aura (Tier 7) Protection:
+    // If the aura pulse is active (first 5s of 20s cycle), player is protected from collision damage.
+    if (killStreak >= 35 && auraTimer < 5000) return;
 
     currentHearts--;
     updateHearts();
-    playSound('over'); // Pain sound
+    playSound('over');
     
     if (currentHearts <= 0) {
         gameOver();
     } else {
-        // تفعيل الحماية المؤقتة (2 ثانية)
         isPlayerInvulnerable = true;
         playerInvulnerabilityTime = Date.now();
-        shakeEndTime = Date.now() + 500; // اهتزاز لمدة نصف ثانية
+        shakeEndTime = Date.now() + 500;
     }
 }
 
@@ -416,10 +486,9 @@ let lastFpsTime = 0;
 let frameCount = 0;
 
 function runGameLoop(timestamp) {
-    if (isGameOver || !renderLoopId) return; // إيقاف الحلقة عند الخسارة
+    if (isGameOver || !renderLoopId) return;
     renderLoopId = requestAnimationFrame(runGameLoop);
 
-    // --- تحديث منطق اللعبة بناءً على السرعة ---
     if (!isPaused) {
         if (!lastUpdateTime) lastUpdateTime = timestamp;
         const deltaTime = timestamp - lastUpdateTime;
@@ -427,40 +496,59 @@ function runGameLoop(timestamp) {
         timeSinceLastUpdate += deltaTime;
         timeSinceWorldUpdate += deltaTime;
 
-        // --- إدارة حماية اللاعب ---
+        // --- Tier 7 Aura Logic (Passive Kill Zone) ---
+        if (killStreak >= 35) {
+            auraTimer += deltaTime;
+            if (auraTimer >= 20000) auraTimer = 0; // Reset every 20s
+            
+            // Active for first 5 seconds
+            if (auraTimer < 5000 && snake.length > 0) {
+                const head = snake[0];
+                const auraRadius = 8; // Grid units
+                
+                for (let ai of aiSnakes) {
+                    if (ai.isDead || ai.body.length === 0) continue;
+                    const aiHead = ai.body[0];
+                    const dx = Math.abs(head.x - aiHead.x);
+                    const dy = Math.abs(head.y - aiHead.y);
+                    // Simple distance check
+                    if (Math.sqrt(dx*dx + dy*dy) <= auraRadius) {
+                        let slayerGoldMult = (1 + (slayerUpgrades.gold1 || 0) * 0.05) * (1 + (slayerUpgrades.gold2 || 0) * 0.10);
+                        grantKillRewards(ai, slayerGoldMult);
+                    }
+                }
+            }
+        } else {
+            auraTimer = 0;
+        }
+
         if (typeof isPlayerInvulnerable !== 'undefined' && isPlayerInvulnerable) {
-            if (Date.now() - playerInvulnerabilityTime > 2000) { // حماية لمدة 2 ثانية
+            if (Date.now() - playerInvulnerabilityTime > 2000) {
                 isPlayerInvulnerable = false;
             }
         }
 
-        // --- Stamina Logic ---
         const maxStamina = 100 + (slayerUpgrades.maxStamina * 20);
-        const regenRate = 0.2 + (slayerUpgrades.staminaRegen * 0.05); // Base 0.2 per frame
+        const regenRate = 0.2 + (slayerUpgrades.staminaRegen * 0.05);
         
-        // التحقق من تطويرة الطاقة اللانهائية
         if (slayerUpgrades.infiniteStamina > 0) {
             currentStamina = maxStamina;
             isExhausted = false;
-            // الجري مسموح دائماً ولا يستهلك طاقة
         } else {
-            // الجري يستهلك طاقة ويؤخر الشحن
             if (isSprinting && !isExhausted && currentStamina > 0) {
-                currentStamina -= 1; // Drain
-                staminaRegenTimestamp = Date.now() + 1000; // كول داون: انتظر ثانية قبل بدء الشحن
+                currentStamina -= 1;
+                staminaRegenTimestamp = Date.now() + 1000;
                 
                 if (currentStamina <= 0) {
                     currentStamina = 0;
-                    isExhausted = true; // عقوبة: اللاعب مرهق
+                    isExhausted = true;
                 }
             } else {
-                // الشحن يبدأ فقط بعد انتهاء الكول داون
                 if (Date.now() > staminaRegenTimestamp && currentStamina < maxStamina) {
                     currentStamina += regenRate;
                     if (currentStamina > maxStamina) currentStamina = maxStamina;
                 }
                 
-                // إزالة الإرهاق إذا شحن اللاعب 25% من طاقته
                 if (isExhausted && currentStamina > (maxStamina * 0.25)) {
                     isExhausted = false;
                 }
@@ -468,11 +556,9 @@ function runGameLoop(timestamp) {
         }
         updateStaminaBar();
 
-        // --- Speed Logic ---
         let currentSpeed = speed;
-        if (isSprinting && !isExhausted && currentStamina > 0) currentSpeed = speed / 2.5; // سرعة مضاعفة بشكل ملحوظ (2.5x)
+        if (isSprinting && !isExhausted && currentStamina > 0) currentSpeed = speed / 2.5;
         
-        // سرعة العالم (الأعداء) تبقى ثابتة ولا تتأثر بالجري
         let worldSpeed = speed;
 
         let movePlayer = false;
@@ -481,31 +567,30 @@ function runGameLoop(timestamp) {
         if (timeSinceLastUpdate > currentSpeed) {
             movePlayer = true;
             timeSinceLastUpdate -= currentSpeed;
-            // منع تراكم الوقت الزائد للاعب
             if (timeSinceLastUpdate > currentSpeed * 2) timeSinceLastUpdate = 0;
         }
         if (timeSinceWorldUpdate > worldSpeed) {
             moveWorld = true;
             timeSinceWorldUpdate -= worldSpeed;
-            // منع تراكم الوقت الزائد للأعداء (يمنع القفزات المفاجئة)
             if (timeSinceWorldUpdate > worldSpeed * 2) timeSinceWorldUpdate = 0;
         }
 
         if (movePlayer || moveWorld) {
             updateSnake(movePlayer, moveWorld);
         }
+
+        if (petInstances) {
+            petInstances.forEach(p => p.update());
+        }
     } else {
-        lastUpdateTime = timestamp; // منع القفزة الزمنية بعد استئناف اللعبة
+        lastUpdateTime = timestamp;
     }
 
-    // --- الرسم وتحديث الواجهة (يعمل دائماً) ---
     updateParticles();
     updateFloatingTexts();
-    draw(); // الرسم الرئيسي
-    // تحسين الأداء: تحديث الخريطة المصغرة مرة كل 3 إطارات (20 FPS) بدلاً من 60
+    draw();
     if (frameCount % 3 === 0) drawMinimap();
 
-    // حساب FPS
     frameCount++;
     if (timestamp - lastFpsTime >= 1000) {
         document.getElementById('fpsCounter').innerText = `FPS: ${frameCount}`;
@@ -514,9 +599,7 @@ function runGameLoop(timestamp) {
     }
 }
 
-// --- نظام الحفظ القوي ---
 function saveGame() {
-    // لا تحفظ إذا كانت اللعبة قد انتهت وتم تصفير البيانات مؤقتاً
     if (isGameOver && score === 0 && coins === 0) return;
 
     try {
@@ -525,14 +608,16 @@ function saveGame() {
         localStorage.setItem('snakeXp', currentXp);
         localStorage.setItem('snakeHighScore', highScore);
         localStorage.setItem('snakeRP', rebirthPoints);
+        localStorage.setItem('snakeEnemiesKilled', enemiesKilled);
+        localStorage.setItem('snakeRebirthCount', rebirthCount);
         localStorage.setItem('snakeSouls', souls);
+        localStorage.setItem('snakeOwnedPets', JSON.stringify(ownedPets));
+        localStorage.setItem('snakeActivePets', JSON.stringify(activePetIds));
         
-        // حفظ الكائنات المعقدة
         localStorage.setItem('snakeUpgrades', JSON.stringify(upgrades));
         localStorage.setItem('snakePrestigeUpgrades', JSON.stringify(prestigeUpgrades));
         localStorage.setItem('snakeSlayerUpgrades', JSON.stringify(slayerUpgrades));
         
-        // حفظ الإعدادات
         localStorage.setItem('snakeSound', soundEnabled);
         localStorage.setItem('snakeParticles', particlesEnabled);
         localStorage.setItem('snakeShowRange', showEatRange);
@@ -546,12 +631,58 @@ function saveGame() {
     }
 }
 
-// حفظ البيانات عند إغلاق المتصفح أو تحديث الصفحة
+function refreshPets() {
+    petInstances = [];
+    if (activePetIds && Array.isArray(activePetIds)) {
+        activePetIds.forEach(id => petInstances.push(new Pet(id)));
+    }
+}
+
 window.addEventListener('beforeunload', () => {
     saveGame();
 });
 
-// --- تصدير الدوال للنطاق العام ---
 window.resetGameProgress = resetGameProgress;
 window.startGame = startGame;
 window.saveGame = saveGame;
+window.refreshPets = refreshPets;
+window.getSafeSpawnPoint = getSafeSpawnPoint;
+
+function getSafeSpawnPoint() {
+    let safe = false;
+    let x, y;
+    let attempts = 0;
+    const safeDist = (typeof SAFE_SPAWN_RADIUS !== 'undefined') ? SAFE_SPAWN_RADIUS : 15;
+
+    while (!safe && attempts < 50) {
+        x = Math.floor(Math.random() * TILE_COUNT_X);
+        y = Math.floor(Math.random() * TILE_COUNT_Y);
+        safe = true;
+
+        // Check Player Distance
+        if (snake.length > 0) {
+            const dx = x - snake[0].x;
+            const dy = y - snake[0].y;
+            if (Math.sqrt(dx*dx + dy*dy) < safeDist) safe = false;
+        }
+
+        // Check Pets Distance
+        if (safe && typeof petInstances !== 'undefined') {
+            for (let p of petInstances) {
+                const dx = x - p.x;
+                const dy = y - p.y;
+                if (Math.sqrt(dx*dx + dy*dy) < safeDist) {
+                    safe = false;
+                    break;
+                }
+            }
+        }
+        attempts++;
+    }
+    // Fallback if no safe spot found
+    if (!safe) {
+        x = Math.floor(Math.random() * TILE_COUNT_X);
+        y = Math.floor(Math.random() * TILE_COUNT_Y);
+    }
+    return { x, y };
+}

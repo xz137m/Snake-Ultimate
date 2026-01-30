@@ -5,7 +5,9 @@ function formatNumber(num) {
     
     const suffixes = [
         "", "k", "M", "B", "T", "Qa", "Qi", "Sx", "Sp", "Oc", "No", "De", 
-        "UnD", "DoD", "TrD", "QaD", "QiD", "SxD", "SpD", "OcD", "NoD", "Vg", "Tg"
+        "UnD", "DoD", "TrD", "QaD", "QiD", "SxD", "SpD", "OcD", "NoD", 
+        "Vg", "UnVg", "DoVg", "TrVg", "QaVg", "QiVg", "SxVg", "SpVg", "OcVg", "NoVg",
+        "Tg"
     ];
     
     const tier = Math.floor(Math.log10(num) / 3);
@@ -21,12 +23,23 @@ function formatNumber(num) {
 }
 
 function getCurrentLevelCap() {
-    if (typeof LEVEL_CAPS === 'undefined') return 15; // Fallback
-    let bestScore = Math.max(score, highScore);
-    let cap = LEVEL_CAPS[0].limit;
+    if (typeof LEVEL_CAPS === 'undefined') return 15;
+    let cap = 15;
+    
     for (let i = 0; i < LEVEL_CAPS.length; i++) {
-        if (bestScore >= LEVEL_CAPS[i].req) {
-            cap = LEVEL_CAPS[i].limit;
+        let tier = LEVEL_CAPS[i];
+        let met = false;
+        
+        if (tier.type === 'none') met = true;
+        else if (tier.type === 'score') met = (window.highScore || 0) >= tier.req;
+        else if (tier.type === 'bossKills') met = (window.enemiesKilled || 0) >= tier.req;
+        else if (tier.type === 'souls') met = (window.souls || 0) >= tier.req;
+        else if (tier.type === 'rebirths') met = (window.rebirthCount || 0) >= tier.req;
+        
+        if (met) {
+            cap = tier.limit;
+        } else {
+            break;
         }
     }
     return cap;
@@ -60,6 +73,16 @@ function playSound(type) {
             gain.gain.exponentialRampToValueAtTime(0.01, now + 0.5);
             osc.start(now);
             osc.stop(now + 0.5);
+        } else if (type === 'gacha') {
+            // Magical Reveal Sound
+            osc.type = 'triangle';
+            osc.frequency.setValueAtTime(300, now);
+            osc.frequency.linearRampToValueAtTime(600, now + 0.2);
+            osc.frequency.linearRampToValueAtTime(1000, now + 0.4);
+            gain.gain.setValueAtTime(0.1, now);
+            gain.gain.exponentialRampToValueAtTime(0.01, now + 0.6);
+            osc.start(now);
+            osc.stop(now + 0.6);
         }
     } catch (e) {
         console.error("Audio Error:", e);
@@ -86,15 +109,7 @@ function getUpgradeCost(baseCost, currentLevel, id) {
     if (STATIC_COSTS[id]) {
         return STATIC_COSTS[id][currentLevel] || Infinity;
     }
-    if (id === 'luckBoost') {
-        return Math.floor(baseCost * Math.pow(1.1, currentLevel));
-    }
-    let cost = baseCost;
-    for (let i = 0; i < currentLevel; i++) {
-        let percentage = Math.min(50 + i, 300);
-        cost = cost * (1 + percentage / 100);
-    }
-    return cost;
+    return Math.floor(baseCost * Math.pow(1.3, currentLevel));
 }
 
 function getEvolutionStage(length) {

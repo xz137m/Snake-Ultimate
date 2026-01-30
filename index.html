@@ -12,7 +12,6 @@
     <link rel="stylesheet" href="CSS/base.css">
     
     <style>
-        /* --- تحسينات الواجهة (HUD Styles) --- */
         .hud-widget {
             position: fixed;
             z-index: 1000;
@@ -33,7 +32,6 @@
         }
         .hud-widget:hover { transform: scale(1.02); }
 
-        /* تصميم القلوب الجديد (خلايا طاقة) */
         .heart-block {
             width: 24px;
             height: 14px;
@@ -43,7 +41,6 @@
             transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
         }
 
-        /* تأثير الرادار للخريطة */
         .radar-sweep {
             position: absolute;
             top: 50%; left: 50%;
@@ -52,8 +49,14 @@
             transform-origin: top left;
             animation: radar-spin 4s linear infinite;
             pointer-events: none;
-            /* border-radius: 50%; removed for square map */
         }
+        
+        /* CSS Overwrite: Force Pet Menu Behavior */
+        #pet-overlay {
+            z-index: 9999 !important;
+            pointer-events: auto !important;
+        }
+        
         @keyframes radar-spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
     </style>
 
@@ -65,20 +68,16 @@
 <body>
     <canvas id="bgCanvas" style="position: fixed; top: 0; left: 0; width: 100%; height: 100%; z-index: -1;"></canvas>
     
-    <!-- Minimap Container with Radar Effect -->
     <div style="position: fixed; bottom: 20px; right: 20px; z-index: 1000; width: 200px; height: 200px; border-radius: 8px; border: 2px solid rgba(0, 255, 255, 0.5); box-shadow: 0 0 20px rgba(0, 255, 255, 0.2); background: #000; overflow: hidden;">
         <canvas id="minimapCanvas" width="200" height="200" style="position: absolute; top: 0; left: 0;"></canvas>
         <div class="radar-sweep"></div>
     </div>
 
-    <!-- Hearts Container (Next to Minimap) -->
     <div id="heartsContainer" style="position: fixed; bottom: 25px; right: 240px; z-index: 1000; display: flex; gap: 2px; filter: drop-shadow(0 0 5px rgba(255, 50, 50, 0.5));"></div>
     
     <div class="main-layout">
-        <!-- Stats Bar (Structured Grid Layout) -->
         <div class="stats-bar" style="background: linear-gradient(180deg, rgba(30, 40, 60, 0.9), rgba(20, 25, 40, 0.9)); border: 1px solid rgba(255, 255, 255, 0.1); border-bottom: 2px solid rgba(0, 255, 255, 0.3); border-radius: 0 0 20px 20px; padding: 15px 30px; margin-bottom: 20px; backdrop-filter: blur(12px); box-shadow: 0 10px 40px rgba(0,0,0,0.6); width: 100%; max-width: 900px;">
             
-            <!-- Left Group: Score & High Score -->
             <div style="display: flex; flex-direction: column; gap: 20px; flex: 1;">
                 <div class="stat-row">
                     <span id="lblScore" style="color: #ddd;">Score:</span> 
@@ -90,7 +89,6 @@
                 </div>
             </div>
 
-            <!-- Center Group: Level -->
             <div style="flex: 1.5; display: flex; flex-direction: column; justify-content: center; align-items: center; padding: 0 20px;">
                 <div style="display: flex; justify-content: space-between; width: 100%; margin-bottom: 5px;">
                     <span id="lblLevel" style="color: #00ffff; font-weight: bold;">Level:</span>
@@ -102,7 +100,6 @@
                 <span id="xpText" style="font-size: 0.8em; color: #888; margin-top: 4px;">0 / 100</span>
             </div>
 
-            <!-- Right Group: Gold & RP -->
             <div style="display: flex; flex-direction: column; gap: 20px; flex: 1;">
                 <div class="stat-row">
                     <span id="lblGold" style="color: #ffd700;">Gold:</span> 
@@ -123,7 +120,6 @@
         <canvas id="gameCanvas" width="800" height="600"></canvas>
         
         <div id="ui-layer">
-            <!-- Stamina Bar -->
             <div class="stamina-container">
                 <div id="staminaFill"></div>
             </div>
@@ -132,7 +128,6 @@
 
         <div id="menu-overlay">
             <div class="menu-glass-panel">
-                <!-- Header Section -->
                 <div class="menu-header">
                     <h1>🐍 Snake Ultimate</h1>
                     <p id="menuInstructions">
@@ -142,15 +137,14 @@
                     </p>
                 </div>
 
-                <!-- Center Play Button -->
                 <button id="startBtn" class="btn-play-large">▶ Play</button>
 
-                <!-- Footer Buttons -->
                 <div class="menu-footer">
                     <button id="shopBtn" class="btn-menu-item btn-shop">🛒 Shop</button>
                     <button id="slayerShopBtn" class="btn-menu-item btn-slayer">⚔️ Slayer</button>
                     <button id="rebirthMenuBtn" class="btn-menu-item btn-rebirth-menu">🌀 Rebirth</button>
                     <button id="guideBtn" class="btn-menu-item btn-guide">📜 Guide</button>
+                    <button id="petMenuBtn" class="btn-menu-item" style="background: linear-gradient(45deg, #ff8000, #ffb74d);">🐾 Pets</button>
                     <button id="settingsBtn" class="btn-menu-item btn-settings">⚙️ Settings</button>
                 </div>
             </div>
@@ -178,6 +172,14 @@
             <button id="closeRebirthBtn" style="margin-top: 20px; background: #ff3366;">❌ Close</button>
         </div>
 
+        <div id="pet-overlay" class="hidden" style="position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(15, 20, 30, 0.98); display: none; flex-direction: column; align-items: center; justify-content: center; z-index: 9999 !important; pointer-events: auto !important;">
+            <h1 style="color: #ff8000;">🐾 Pet Companion</h1>
+            <p style="color: #ff3333; font-size: 20px; margin-bottom: 10px;"><span id="lblPetSouls">Souls:</span> <span id="petSoulsDisplay">0</span> 👻</p>
+            <button id="btnPullGacha" class="btn-max" style="margin-bottom: 20px; pointer-events: auto;" onclick="window.pullPetGacha()">Summon Pet</button>
+            <div id="pet-items" class="shop-grid"></div>
+            <button id="closePetBtn" style="margin-top: 20px; background: #ff3366; pointer-events: auto;" onclick="window.closePetMenu()">❌ Close</button>
+        </div>
+
         <div id="guide-overlay" class="hidden">
             <h1 id="guideTitle">📜 Game Guide</h1>
             <div id="guide-items" class="shop-grid"></div>
@@ -202,7 +204,6 @@
                         <button id="langEnBtn" style="flex: 1; font-size: 18px;">English</button>
                         <button id="langArBtn" style="flex: 1; font-size: 18px;">العربية</button>
                     </div>
-                    <!-- زر إعادة التعيين تم نقله هنا للأمان -->
                     <button id="resetBtn" class="btn-menu-item btn-reset" style="font-size: 18px; background: linear-gradient(45deg, #d32f2f, #f44336); margin-top: 10px;">🗑️ Reset Data</button>
                     <button id="closeSettingsBtn" class="btn-close">❌ Close</button>
                 </div>
@@ -210,7 +211,6 @@
         </div>
         </div>
 
-        <!-- Mobile Controls (Joystick & Sprint) -->
         <div id="mobile-controls" style="display: none;">
             <div id="joystick-container">
                 <div id="joystick-knob"></div>
@@ -226,22 +226,18 @@
             <span id="progressText" style="white-space: nowrap; font-family: monospace; color: #ccc;">1/50</span>
         </div>
     </div>
- <!-- المكتبات والثوابت أولاً -->
  <script src="js/constants.js"></script>
- <script src="js/state.js"></script> <!-- المتغيرات العامة -->
- <script src="js/utils.js"></script> <!-- الدوال المساعدة العامة -->
-
- <!-- الطبقات والواجهة -->
+ <script src="js/state.js"></script>
+ <script src="js/utils.js"></script>
  <script src="js/ui.js"></script>
  <script src="js/shop.js"></script>
  <script src="js/slayerShop.js"></script>
  <script src="js/ResetLayer.js"></script>
  <script src="js/Projectile.js"></script>
  <script src="js/AiSnake.js"></script>
+ <script src="js/Pet.js"></script>
  <script src="js/input.js"></script>
  <script src="js/renderer.js"></script>
- 
- <!-- منطق اللعبة والتشغيل -->
  <script src="js/game.js"></script>
  <script type="module" src="js/main.js"></script>
  

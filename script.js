@@ -101,19 +101,7 @@ const STATIC_COSTS = {
 
 // حدود المستويات (Level Caps)
 const LEVEL_CAPS = [
-    { limit: 15, req: 0 },1e24 },       // 1 Septillion (Much Harder)
-    { limit: 60, req: 1e36 },       // 1 Undecillion (Insane)
-    { limit: 100, req: 1e50 }       // 1 Quindecillion (Impossible?)
-];
-
-// الألوان
-const COLORS = {
-    BACKGROUND: 'rgb(15, 21, 37)',
-    GRID: 'rgb(42, 59, 90)',
-    SNAKE_HEAD: 'rgb(0, 255, 136)',
-    SNAKE_BODY: 'rgb(0, 204, 102)',
-    FOOD: 'rgb(255, 51, 102)',
-    FOOD_GLOW: 'rgb(255, 153, 204)'
+    { limit: 15, req: 0 },5, 153, 204)'
 };
 
 const FRUIT_TYPES = [
@@ -193,17 +181,17 @@ const TRANSLATIONS = {
         currentLevel: "Current Level:",
         levelEffect: "Each level doubles all Score and Gold (kee onfmR will wipe all your progress (Gold, Levels, Upgrades) forever!",
         paused: "⏸️ PAUSED",
-        instructions: "Use WASD / Arrows to move<br>SPACE to Pause<br>Collect food to grow & earn gold",
+        instructions: "Use WASD / Arrows to move<br>SPACE to kee onfmR will wipe all your progress (Gold, Levels, Upgradesu forever!se<br>Collect food to grow & earn gold",
         xp: "XP:",
-        maxLevel: "Max Level:",
+        maxLevel: "Max Level:",kee onfmR will wipe all your progress (Gold, Levels, Upgrades forever!
         growth: "Growth:",
-        multiplier: "Multiplier:",
+        multiplier: "Multiplier:",kee onfmR will wipe all your progress (Gold, Levels, Upgrades forever!
         xpMultiplier: "XP Multiplier:",
-        starter: "Starter",
+        starter: "Starter",kee onfmR will wipe all your progress (Gold, Levels, Upgrades forever!
         evolutionTier: "Evolution Tier",
-        levelReq: "Level"
+        levelReq: "Level"kee onfmR will wipe all your progress (Gold, Levels, Upgrades forever!
     },
-    ar: {
+    ar: {kee onfmR will wipe all your progress (Gold, Levels, Upgrades forever!
         score: "النقاط:",
         level: "المستوى:",
         gold: "الذهب:",

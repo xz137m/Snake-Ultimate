@@ -21,7 +21,7 @@ function renderSlayerShopItems() {
             desc: t.heartUpgradeDesc, 
             level: slayerUpgrades.maxHearts, 
             maxLevel: 5, 
-            cost: Math.floor(100 * Math.pow(2.5, slayerUpgrades.maxHearts)) 
+            cost: Math.floor(100 * Math.pow(1.5, slayerUpgrades.maxHearts)) 
         },
         { 
             id: 'maxStamina', 
@@ -37,7 +37,7 @@ function renderSlayerShopItems() {
             desc: t.regenUpgradeDesc, 
             level: slayerUpgrades.staminaRegen, 
             maxLevel: 10, 
-            cost: Math.floor(75 * Math.pow(1.6, slayerUpgrades.staminaRegen)) 
+            cost: Math.floor(75 * Math.pow(1.5, slayerUpgrades.staminaRegen)) 
         },
         { 
             id: 'gold1', 
@@ -53,7 +53,7 @@ function renderSlayerShopItems() {
             desc: t.slayerGold2Desc, 
             level: slayerUpgrades.gold2, 
             maxLevel: 50, 
-            cost: Math.floor(1000 * Math.pow(1.6, slayerUpgrades.gold2)) 
+            cost: Math.floor(1000 * Math.pow(1.5, slayerUpgrades.gold2)) 
         },
         { 
             id: 'rp1', 
@@ -69,7 +69,7 @@ function renderSlayerShopItems() {
             desc: t.slayerRP2Desc, 
             level: slayerUpgrades.rp2, 
             maxLevel: 50, 
-            cost: Math.floor(2500 * Math.pow(1.6, slayerUpgrades.rp2)) 
+            cost: Math.floor(2500 * Math.pow(1.5, slayerUpgrades.rp2)) 
         },
         { 
             id: 'souls1', 
@@ -85,7 +85,7 @@ function renderSlayerShopItems() {
             desc: t.slayerSouls2Desc, 
             level: slayerUpgrades.souls2, 
             maxLevel: 50, 
-            cost: Math.floor(1500 * Math.pow(1.6, slayerUpgrades.souls2)) 
+            cost: Math.floor(1500 * Math.pow(1.5, slayerUpgrades.souls2)) 
         },
         { 
             id: 'infiniteStamina', 
@@ -98,21 +98,26 @@ function renderSlayerShopItems() {
     ];
 
     items.forEach(item => {
-        let dynamicInfo = '';
-        let bonusVal = '';
-        if (item.id === 'maxHearts') bonusVal = `+${item.level} ❤️`;
-        else if (item.id === 'maxStamina') bonusVal = `+${item.level * 20} ⚡`;
-        else if (item.id === 'staminaRegen') bonusVal = `+${item.level * 5}%`;
-        else if (item.id === 'gold1') bonusVal = `+${item.level * 5}%`;
-        else if (item.id === 'gold2') bonusVal = `+${item.level * 10}%`;
-        else if (item.id === 'rp1') bonusVal = `+${item.level * 5}%`;
-        else if (item.id === 'rp2') bonusVal = `+${item.level * 10}%`;
-        else if (item.id === 'souls1') bonusVal = `+${item.level * 5}%`;
-        else if (item.id === 'souls2') bonusVal = `+${item.level * 10}%`;
-        else if (item.id === 'infiniteStamina') bonusVal = item.level > 0 ? "✅ ACTIVE" : "";
+        const getBonus = (id, lvl) => {
+            if (id === 'maxHearts') return `+${lvl} ❤️`;
+            if (id === 'maxStamina') return `+${lvl * 20} ⚡`;
+            if (id === 'staminaRegen') return `+${lvl * 5}%`;
+            if (id === 'gold1') return `+${lvl * 5}%`;
+            if (id === 'gold2') return `+${lvl * 10}%`;
+            if (id === 'rp1') return `+${lvl * 5}%`;
+            if (id === 'rp2') return `+${lvl * 10}%`;
+            if (id === 'souls1') return `+${lvl * 5}%`;
+            if (id === 'souls2') return `+${lvl * 10}%`;
+            if (id === 'infiniteStamina') return lvl > 0 ? "✅ ACTIVE" : "❌ INACTIVE";
+            return '';
+        };
 
-        if (bonusVal) {
-             dynamicInfo = `<br><span style="color: #00ff00; font-weight: bold; font-size: 0.9em;">${t.currentBonus} ${bonusVal}</span>`;
+        let currentBonus = getBonus(item.id, item.level);
+        let nextBonus = item.level < item.maxLevel ? getBonus(item.id, item.level + 1) : "MAX";
+
+        let dynamicInfo = `<br><span style="color: #00ff00; font-weight: bold; font-size: 0.9em;">Current: ${currentBonus}</span>`;
+        if (item.level < item.maxLevel) {
+            dynamicInfo += `<br><span style="color: #00ffff; font-weight: bold; font-size: 0.9em;">Next: ${nextBonus}</span>`;
         }
 
         const div = document.createElement('div');
@@ -184,15 +189,15 @@ window.buyMaxSlayerUpgrade = function(id) {
     while (slayerUpgrades[id] < maxLvl) {
         let cost = 0;
         // حساب التكلفة بناءً على نوع التطوير
-        if (id === 'maxHearts') cost = Math.floor(100 * Math.pow(2.5, slayerUpgrades[id]));
+        if (id === 'maxHearts') cost = Math.floor(100 * Math.pow(1.5, slayerUpgrades[id]));
         else if (id === 'maxStamina') cost = Math.floor(50 * Math.pow(1.5, slayerUpgrades[id]));
-        else if (id === 'staminaRegen') cost = Math.floor(75 * Math.pow(1.6, slayerUpgrades[id]));
+        else if (id === 'staminaRegen') cost = Math.floor(75 * Math.pow(1.5, slayerUpgrades[id]));
         else if (id === 'gold1') cost = Math.floor(200 * Math.pow(1.5, slayerUpgrades[id]));
-        else if (id === 'gold2') cost = Math.floor(1000 * Math.pow(1.6, slayerUpgrades[id]));
+        else if (id === 'gold2') cost = Math.floor(1000 * Math.pow(1.5, slayerUpgrades[id]));
         else if (id === 'rp1') cost = Math.floor(500 * Math.pow(1.5, slayerUpgrades[id]));
-        else if (id === 'rp2') cost = Math.floor(2500 * Math.pow(1.6, slayerUpgrades[id]));
+        else if (id === 'rp2') cost = Math.floor(2500 * Math.pow(1.5, slayerUpgrades[id]));
         else if (id === 'souls1') cost = Math.floor(300 * Math.pow(1.5, slayerUpgrades[id]));
-        else if (id === 'souls2') cost = Math.floor(1500 * Math.pow(1.6, slayerUpgrades[id]));
+        else if (id === 'souls2') cost = Math.floor(1500 * Math.pow(1.5, slayerUpgrades[id]));
         else if (id === 'infiniteStamina') cost = 50000;
         
         if (window.souls >= cost) {

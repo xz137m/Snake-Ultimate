@@ -1,18 +1,14 @@
 document.addEventListener('DOMContentLoaded', () => {
-    // 1. ربط المتغيرات العامة (من state.js) بعناصر HTML
+    // 1. ربط المتغيرات العامة (الموجودة في state.js) بعناصر HTML
+    // لا نستخدم var هنا لكي نحدث المتغيرات العامة مباشرة
     canvas = document.getElementById('gameCanvas');
-    if (canvas) {
-        ctx = canvas.getContext('2d');
-    }
+    if (canvas) ctx = canvas.getContext('2d');
     
     minimapCanvas = document.getElementById('minimapCanvas');
-    if (minimapCanvas) {
-        minimapCtx = minimapCanvas.getContext('2d');
-    }
+    if (minimapCanvas) minimapCtx = minimapCanvas.getContext('2d');
 
-    // ربط عناصر الواجهة
     scoreElement = document.getElementById('score');
-    highScoreElement = document.getElementById('highScore');
+    highScoreElement = document.getElementById('highScore'); // هذا هو الإصلاح: تحديث المتغير العام
     coinsElement = document.getElementById('coinsDisplay');
     levelElement = document.getElementById('levelDisplay');
     rpElement = document.getElementById('rpDisplay');
@@ -23,140 +19,161 @@ document.addEventListener('DOMContentLoaded', () => {
     settingsOverlay = document.getElementById('settings-overlay');
     rebirthOverlay = document.getElementById('rebirth-overlay');
     slayerShopOverlay = document.getElementById('slayer-shop-overlay');
+    // petOverlay handled dynamically
 
     progressFill = document.getElementById('progressFill');
     progressText = document.getElementById('progressText');
     xpFill = document.getElementById('xpFill');
     xpText = document.getElementById('xpText');
 
-    // ربط الأزرار بالدوال
+    // 2. ربط الأزرار بالدوال العامة (Window Functions)
     const startBtn = document.getElementById('startBtn');
-    if (startBtn) startBtn.addEventListener('click', startGame);
+    if (startBtn) startBtn.addEventListener('click', () => window.startGame());
 
-    // --- ربط أزرار القوائم الرئيسية ---
     const shopBtn = document.getElementById('shopBtn');
     if (shopBtn) shopBtn.addEventListener('click', () => window.openShop());
-
+    
     const slayerShopBtn = document.getElementById('slayerShopBtn');
     if (slayerShopBtn) slayerShopBtn.addEventListener('click', () => window.openSlayerShop());
-
+    
     const guideBtn = document.getElementById('guideBtn');
     if (guideBtn) guideBtn.addEventListener('click', () => window.openGuide());
-
+    
     const settingsBtn = document.getElementById('settingsBtn');
     if (settingsBtn) settingsBtn.addEventListener('click', () => window.openSettings());
-
+    
     const resetBtn = document.getElementById('resetBtn');
     if (resetBtn) resetBtn.addEventListener('click', () => window.resetGameProgress());
-
+    
     const rebirthMenuBtn = document.getElementById('rebirthMenuBtn');
     if (rebirthMenuBtn) rebirthMenuBtn.addEventListener('click', () => window.openRebirth());
     
-    // --- ربط أزرار الإغلاق ---
+    const petMenuBtn = document.getElementById('petMenuBtn');
+    if (petMenuBtn) petMenuBtn.addEventListener('click', () => window.openPetMenu());
+
+    // أزرار الإغلاق
     const closeShopBtn = document.getElementById('closeShopBtn');
-    if (closeShopBtn) closeShopBtn.addEventListener('click', () => {
-        console.log('Shop Close Button Clicked!');
-        window.hidePanel('shop-overlay');
-    });
+    if (closeShopBtn) closeShopBtn.addEventListener('click', () => window.hidePanel('shop-overlay'));
     
     const closeSlayerBtn = document.getElementById('closeSlayerShopBtn');
-    if (closeSlayerBtn) closeSlayerBtn.addEventListener('click', () => {
-        console.log('Slayer Shop Close Button Clicked!');
-        window.hidePanel('slayer-shop-overlay');
-    });
+    if (closeSlayerBtn) closeSlayerBtn.addEventListener('click', () => window.hidePanel('slayer-shop-overlay'));
     
     const closeGuideBtn = document.getElementById('closeGuideBtn');
-    if (closeGuideBtn) closeGuideBtn.addEventListener('click', () => {
-        console.log('Guide Close Button Clicked!');
-        window.hidePanel('guide-overlay');
-    });
+    if (closeGuideBtn) closeGuideBtn.addEventListener('click', () => window.hidePanel('guide-overlay'));
     
     const closeSettingsBtn = document.getElementById('closeSettingsBtn');
-    if (closeSettingsBtn) closeSettingsBtn.addEventListener('click', () => {
-        console.log('Settings Close Button Clicked!');
-        window.hidePanel('settings-overlay');
-    });
+    if (closeSettingsBtn) closeSettingsBtn.addEventListener('click', () => window.hidePanel('settings-overlay'));
     
     const closeRebirthBtn = document.getElementById('closeRebirthBtn');
-    if (closeRebirthBtn) closeRebirthBtn.addEventListener('click', () => {
-        console.log('Rebirth Close Button Clicked!');
-        window.hidePanel('rebirth-overlay');
-    });
+    if (closeRebirthBtn) closeRebirthBtn.addEventListener('click', () => window.hidePanel('rebirth-overlay'));
     
     const doRebirthBtn = document.getElementById('doRebirthBtn');
     if (doRebirthBtn) doRebirthBtn.addEventListener('click', () => window.performRebirth());
-    
+
+    // Removed dynamic closePetBtn listener to avoid conflicts with HTML onclick
+    // أزرار الإعدادات
     toggleSoundBtn = document.getElementById('toggleSoundBtn');
-    toggleSoundBtn.addEventListener('click', toggleSound);
+    if(toggleSoundBtn) toggleSoundBtn.addEventListener('click', window.toggleSound);
     
     toggleParticlesBtn = document.getElementById('toggleParticlesBtn');
-    toggleParticlesBtn.addEventListener('click', toggleParticles);
+    if(toggleParticlesBtn) toggleParticlesBtn.addEventListener('click', window.toggleParticles);
     
     toggleRangeBtn = document.getElementById('toggleRangeBtn');
-    if(toggleRangeBtn) toggleRangeBtn.addEventListener('click', toggleRange);
+    if(toggleRangeBtn) toggleRangeBtn.addEventListener('click', window.toggleRange);
     
     toggleGlowBtn = document.getElementById('toggleGlowBtn');
-    if(toggleGlowBtn) toggleGlowBtn.addEventListener('click', toggleGlow);
+    if(toggleGlowBtn) toggleGlowBtn.addEventListener('click', window.toggleGlow);
     
     toggleQualityBtn = document.getElementById('toggleQualityBtn');
-    if(toggleQualityBtn) toggleQualityBtn.addEventListener('click', toggleQuality);
+    if(toggleQualityBtn) toggleQualityBtn.addEventListener('click', window.toggleQuality);
 
     toggleBrightnessBtn = document.getElementById('toggleBrightnessBtn');
-    if(toggleBrightnessBtn) toggleBrightnessBtn.addEventListener('click', cycleBrightness);
+    if(toggleBrightnessBtn) toggleBrightnessBtn.addEventListener('click', window.cycleBrightness);
 
-    document.getElementById('langEnBtn').addEventListener('click', () => setLanguage('en'));
-    document.getElementById('langArBtn').addEventListener('click', () => setLanguage('ar'));
+    if(document.getElementById('langEnBtn')) document.getElementById('langEnBtn').addEventListener('click', () => window.setLanguage('en'));
+    if(document.getElementById('langArBtn')) document.getElementById('langArBtn').addEventListener('click', () => window.setLanguage('ar'));
 
-    // تهيئة تحكم الجوال
+    // 3. التهيئة الأولية
     initMobileControls();
-
-    // تشغيل خلفية الصفحة المتحركة
     initBackgroundAnimation();
 
-    // 2. الإعداد الأولي للعبة
-    setLanguage(currentLanguage);
-    initGame(); // تهيئة الثعبان والطعام
-    // رسم إطار واحد لإظهار الخلفية والشبكة بدلاً من الشاشة السوداء
+    // تطبيق اللغة وتحديث النصوص (بما في ذلك أعلى نقاط)
+    if(typeof window.setLanguage === 'function') window.setLanguage(currentLanguage);
+    
+    // تحديث الواجهة فوراً للتأكد من ظهور الأرقام
+    if(typeof window.updateScore === 'function') window.updateScore();
+    
+    // رسم إطار واحد للخلفية
     if (typeof draw === 'function') requestAnimationFrame(draw);
 });
 
-// إضافة مستمعي الأحداث العامة
-window.addEventListener('keydown', handleKeyPress);
-window.addEventListener('keyup', (e) => {
-    if (e.key === 'Shift') {
-        isSprinting = false;
+// --- وظائف الواجهة الخاصة (الخلفية والتحكم) ---
+
+function initMobileControls() {
+    if ('ontouchstart' in window || navigator.maxTouchPoints > 0) {
+        const controls = document.getElementById('mobile-controls');
+        if (controls) controls.style.display = 'block';
+
+        const joystickContainer = document.getElementById('joystick-container');
+        const joystickKnob = document.getElementById('joystick-knob');
+        const sprintBtn = document.getElementById('mobile-sprint-btn');
+        
+        let joystickActive = false;
+        let startX, startY;
+        const maxRadius = 40;
+
+        if(joystickContainer) {
+            joystickContainer.addEventListener('touchstart', (e) => {
+                e.preventDefault();
+                joystickActive = true;
+                const rect = joystickContainer.getBoundingClientRect();
+                startX = rect.left + rect.width / 2;
+                startY = rect.top + rect.height / 2;
+            }, { passive: false });
+
+            joystickContainer.addEventListener('touchmove', (e) => {
+                e.preventDefault();
+                if (!joystickActive) return;
+                const touch = e.touches[0];
+                let dx = touch.clientX - startX;
+                let dy = touch.clientY - startY;
+                const distance = Math.sqrt(dx*dx + dy*dy);
+                if (distance > maxRadius) {
+                    const ratio = maxRadius / distance;
+                    dx *= ratio;
+                    dy *= ratio;
+                }
+                if(joystickKnob) joystickKnob.style.transform = `translate(calc(-50% + ${dx}px), calc(-50% + px))`;
+                
+                if (Math.abs(dx) > Math.abs(dy)) {
+                    if (dx > 10 && velocity.x !== -1) nextVelocity = { x: 1, y: 0 };
+                    else if (dx < -10 && velocity.x !== 1) nextVelocity = { x: -1, y: 0 };
+                } else {
+                    if (dy > 10 && velocity.y !== -1) nextVelocity = { x: 0, y: 1 };
+                    else if (dy < -10 && velocity.y !== 1) nextVelocity = { x: 0, y: -1 };
+                }
+            }, { passive: false });
+
+            joystickContainer.addEventListener('touchend', (e) => {
+                e.preventDefault();
+                joystickActive = false;
+                if(joystickKnob) joystickKnob.style.transform = `translate(-50%, -50%)`;
+            }, { passive: false });
+        }
+
+        if(sprintBtn) {
+            sprintBtn.addEventListener('touchstart', (e) => { e.preventDefault(); isSprinting = true; }, { passive: false });
+            sprintBtn.addEventListener('touchend', (e) => { e.preventDefault(); isSprinting = false; }, { passive: false });
+        }
     }
-});
-window.addEventListener('keydown', (e) => {
-    if (e.repeat) return; // منع تكرار الحدث عند التعليق على الزر
-    if (e.key === 'Shift') {
-        isSprinting = true;
-    }
-});
+}
 
-// دعم اللمس
-document.addEventListener('touchstart', e => {
-    touchStartX = e.changedTouches[0].screenX;
-    touchStartY = e.changedTouches[0].screenY;
-}, {passive: false});
-
-document.addEventListener('touchend', e => {
-    const touchEndX = e.changedTouches[0].screenX;
-    const touchEndY = e.changedTouches[0].screenY;
-    handleSwipe(touchStartX, touchStartY, touchEndX, touchEndY);
-}, {passive: false});
-
-document.body.addEventListener('touchmove', function(e) { e.preventDefault(); }, { passive: false });
-
-// --- دالة تحريك خلفية الصفحة (خارج اللعبة) ---
 function initBackgroundAnimation() {
     const canvas = document.getElementById('bgCanvas');
     if (!canvas) return;
     const ctx = canvas.getContext('2d');
     let width, height;
     let particles = [];
-    
-    // تتبع الماوس
     let mouse = { x: null, y: null };
     window.addEventListener('mousemove', (e) => {
         mouse.x = e.x;
@@ -173,7 +190,7 @@ function initBackgroundAnimation() {
 
     function createParticles() {
         particles = [];
-        const count = Math.floor((width * height) / 35000); // تحسين إضافي للأداء
+        const count = Math.floor((width * height) / 35000);
         for (let i = 0; i < count; i++) {
             particles.push({
                 x: Math.random() * width,
@@ -188,7 +205,6 @@ function initBackgroundAnimation() {
     }
 
     function animate() {
-        // إذا كان وضع الجودة المنخفضة مفعلاً، أوقف الرسم المتحرك وارسم خلفية ثابتة
         if (typeof lowQualityMode !== 'undefined' && lowQualityMode) {
              ctx.clearRect(0, 0, width, height);
              ctx.fillStyle = '#0f172a';
@@ -198,14 +214,12 @@ function initBackgroundAnimation() {
         }
         ctx.clearRect(0, 0, width, height);
 
-        // رسم تدرج لوني هادئ
         const grad = ctx.createLinearGradient(0, 0, 0, height);
-        grad.addColorStop(0, '#0f172a'); // أزرق ليلي غامق
-        grad.addColorStop(1, '#151b2e'); // أفتح قليلاً في الأسفل
+        grad.addColorStop(0, '#0f172a');
+        grad.addColorStop(1, '#151b2e');
         ctx.fillStyle = grad;
         ctx.fillRect(0, 0, width, height);
 
-        // رسم شبكة متحركة خفيفة جداً
         ctx.strokeStyle = 'rgba(255, 255, 255, 0.03)';
         ctx.lineWidth = 1;
         const time = Date.now() / 50;
@@ -216,13 +230,11 @@ function initBackgroundAnimation() {
         for (let y = (time % gridSize); y < height; y += gridSize) { ctx.moveTo(0, y); ctx.lineTo(width, y); }
         ctx.stroke();
 
-        // رسم الجسيمات والخطوط المتصلة
         particles.forEach((p, index) => {
             p.x += p.vx; p.y += p.vy; p.pulse += 0.05;
             if (p.x < 0) p.x = width; if (p.x > width) p.x = 0;
             if (p.y < 0) p.y = height; if (p.y > height) p.y = 0;
 
-            // تفاعل مع الماوس (هروب خفيف)
             if (mouse.x != null) {
                 let dx = mouse.x - p.x;
                 let dy = mouse.y - p.y;
