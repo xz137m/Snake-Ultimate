@@ -51,6 +51,12 @@ document.addEventListener('DOMContentLoaded', () => {
     const petMenuBtn = document.getElementById('petMenuBtn');
     if (petMenuBtn) petMenuBtn.addEventListener('click', () => window.openPetMenu());
 
+    const resumeBtn = document.getElementById('resumeBtn');
+    if (resumeBtn) resumeBtn.addEventListener('click', () => window.togglePause());
+
+    const mainMenuBtn = document.getElementById('mainMenuBtn');
+    if (mainMenuBtn) mainMenuBtn.addEventListener('click', () => location.reload());
+
     // أزرار الإغلاق
     const closeShopBtn = document.getElementById('closeShopBtn');
     if (closeShopBtn) closeShopBtn.addEventListener('click', () => window.hidePanel('shop-overlay'));

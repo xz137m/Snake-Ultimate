@@ -186,6 +186,12 @@
             <button id="closeGuideBtn" style="margin-top: 20px; background: #ff3366;">❌ Close</button>
         </div>
 
+        <div id="pause-overlay" class="hidden" style="position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0, 0, 0, 0.7); display: none; flex-direction: column; align-items: center; justify-content: center; z-index: 2000; backdrop-filter: blur(5px);">
+            <h1 style="color: white; font-size: 40px; margin-bottom: 30px; text-shadow: 0 0 10px rgba(255,255,255,0.5);">PAUSED</h1>
+            <button id="resumeBtn" class="btn-menu-item" style="background: linear-gradient(45deg, #00c853, #64dd17); width: 200px; margin-bottom: 15px;">▶ Resume</button>
+            <button id="mainMenuBtn" class="btn-menu-item" style="background: linear-gradient(45deg, #d50000, #ff1744); width: 200px;">🏠 Main Menu</button>
+        </div>
+
         <div id="settings-overlay" class="hidden">
             <div class="settings-card">
                 <h1 id="settingsTitle">⚙️ Settings</h1>
@@ -228,8 +234,11 @@
     </div>
  <script src="js/constants.js"></script>
  <script src="js/state.js"></script>
+ <script src="js/elements.js"></script>
  <script src="js/utils.js"></script>
  <script src="js/ui.js"></script>
+ <script src="js/guideUi.js"></script>
+ <script src="js/petUi.js"></script>
  <script src="js/shop.js"></script>
  <script src="js/slayerShop.js"></script>
  <script src="js/ResetLayer.js"></script>

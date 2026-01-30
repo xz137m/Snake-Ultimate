@@ -19,10 +19,10 @@ function createShockwave(x, y, color) {
         x: x,
         y: y,
         radius: 10,
-        maxRadius: 200,
+        maxRadius: 250, // Increased range
         color: color,
-        alpha: 0.8,
-        lineWidth: 15
+        alpha: 1.0, // Start brighter
+        lineWidth: 20 // Thicker line
     });
 }
 window.createShockwave = createShockwave;
@@ -140,8 +140,9 @@ function draw() {
 
     const time = Date.now() / 2000;
     const scanPos = (time % 1) * (TILE_COUNT_X * GRID_SIZE + 800) - 400;
-    ctx.fillStyle = 'rgba(100, 200, 255, 0.05)';
+    ctx.fillStyle = '#64c8ff'; // rgb(100, 200, 255) - Base color
 
+    let currentAlpha = -1; // Optimization: Cache alpha state
     for (let x = startX; x <= endX; x += GRID_SIZE) {
         for (let y = startY; y <= endY; y += GRID_SIZE) {
             if (x >= 0 && x < TILE_COUNT_X * GRID_SIZE && y >= 0 && y < TILE_COUNT_Y * GRID_SIZE) {
@@ -149,27 +150,38 @@ function draw() {
                 const row = Math.floor(y / GRID_SIZE);
                 if ((col + row) % 2 === 0) {
                     const dist = Math.abs((x + y) - scanPos);
+                    let alpha = 0.05;
                     if (dist < 200) {
-                        ctx.fillStyle = `rgba(100, 200, 255, ${0.05 + (1 - dist / 200) * 0.1})`;
-                        ctx.fillRect(x, y, GRID_SIZE, GRID_SIZE);
-                        ctx.fillStyle = 'rgba(100, 200, 255, 0.05)';
-                    } else {
-                        ctx.fillRect(x, y, GRID_SIZE, GRID_SIZE);
+                        alpha += (1 - dist / 200) * 0.1;
                     }
+                    // Optimization: Only change context state if alpha changed significantly
+                    if (Math.abs(alpha - currentAlpha) > 0.001) {
+                        ctx.globalAlpha = alpha;
+                        currentAlpha = alpha;
+                    }
+                    ctx.fillRect(x, y, GRID_SIZE, GRID_SIZE);
                 }
             }
         }
     }
+    ctx.globalAlpha = 1.0;
 
     if (snake.length > 0 && !lowQualityMode) {
         const head = snake[0];
         const hx = head.x * GRID_SIZE + GRID_SIZE/2;
         const hy = head.y * GRID_SIZE + GRID_SIZE/2;
-        const light = ctx.createRadialGradient(hx, hy, 50, hx, hy, 400);
-        light.addColorStop(0, 'rgba(255, 255, 255, 0.1)');
-        light.addColorStop(1, 'rgba(255, 255, 255, 0)');
-        ctx.fillStyle = light;
-        ctx.fillRect(startX, startY, endX - startX, endY - startY);
+        const radius = 400;
+        
+        // Optimization: Only draw light if visible and only the affected rect
+        if (hx + radius > camera.x && hx - radius < camera.x + canvas.width &&
+            hy + radius > camera.y && hy - radius < camera.y + canvas.height) {
+            
+            const light = ctx.createRadialGradient(hx, hy, 50, hx, hy, radius);
+            light.addColorStop(0, 'rgba(255, 255, 255, 0.1)');
+            light.addColorStop(1, 'rgba(255, 255, 255, 0)');
+            ctx.fillStyle = light;
+            ctx.fillRect(hx - radius, hy - radius, radius * 2, radius * 2);
+        }
     }
 
     if (!lowQualityMode) {
@@ -361,9 +373,8 @@ function draw() {
 
         ctx.globalAlpha = p.life;
         ctx.fillStyle = p.color;
-        ctx.beginPath();
-        ctx.arc(p.x, p.y, 3, 0, Math.PI * 2);
-        ctx.fill();
+        // Optimization: Use fillRect instead of arc for particles (much faster)
+        ctx.fillRect(p.x - 1.5, p.y - 1.5, 3, 3);
     });
     ctx.globalAlpha = 1.0;
     const unlockedColors = PRESTIGE_COLORS.filter(c => playerLevel >= c.reqLevel);
@@ -553,15 +564,6 @@ function draw() {
         ctx.fillRect(0, 0, canvas.width, canvas.height);
         ctx.globalCompositeOperation = 'source-over';
     }
-
-    if (isPaused) {
-        ctx.fillStyle = "rgba(0, 0, 0, 0.5)";
-        ctx.fillRect(0, 0, canvas.width, canvas.height);
-        ctx.fillStyle = "white";
-        ctx.font = "bold 40px Arial";
-        ctx.textAlign = "center";
-        ctx.fillText(TRANSLATIONS[currentLanguage].paused, canvas.width / 2, canvas.height / 2);
-    }
 }
 
 function drawMinimap() {
@@ -587,9 +589,8 @@ function drawMinimap() {
     foods.forEach(f => {
         const type = FRUIT_TYPES[f.type];
         minimapCtx.fillStyle = type.color;
-        minimapCtx.beginPath();
-        minimapCtx.arc(f.x * scaleX + scaleX/2, f.y * scaleY + scaleY/2, Math.max(scaleX/2, 2), 0, Math.PI * 2);
-        minimapCtx.fill();
+        // Optimization: Use fillRect for minimap dots
+        minimapCtx.fillRect(f.x * scaleX, f.y * scaleY, Math.max(scaleX, 2), Math.max(scaleY, 2));
     });
 
     minimapCtx.fillStyle = 'rgba(0, 255, 136, 0.6)'; 
@@ -637,37 +638,146 @@ function drawPlayerAura() {
     const head = snake[0];
     const cx = head.x * GRID_SIZE + GRID_SIZE/2;
     const cy = head.y * GRID_SIZE + GRID_SIZE/2;
+    const time = Date.now();
     
-    let color, radius;
+    let color, innerColor, radius, tier;
     
-    if (killStreak >= 35) { // Tier 7: Deep Purple
-        color = 'rgba(148, 0, 211, 0.6)';
-        radius = GRID_SIZE * 8;
-        
-        // Pulse Effect for Tier 7
-        if (auraTimer < 5000) { // Active Phase
-            const pulse = Math.sin(Date.now() / 100) * 10;
-            radius += pulse;
-            color = 'rgba(180, 0, 255, 0.8)'; // Brighter when active
-        }
-    } else if (killStreak >= 30) { color = 'rgba(255, 50, 50, 0.5)'; radius = GRID_SIZE * 6; } // Tier 6: Red
-    else if (killStreak >= 25) { color = 'rgba(255, 165, 0, 0.4)'; radius = GRID_SIZE * 5; } // Tier 5: Orange
-    else if (killStreak >= 20) { color = 'rgba(255, 255, 0, 0.35)'; radius = GRID_SIZE * 4.5; } // Tier 4: Yellow
-    else if (killStreak >= 15) { color = 'rgba(0, 255, 100, 0.3)'; radius = GRID_SIZE * 4; } // Tier 3: Green
-    else if (killStreak >= 10) { color = 'rgba(100, 200, 255, 0.25)'; radius = GRID_SIZE * 3.5; } // Tier 2: Blue
-    else { color = 'rgba(255, 255, 255, 0.15)'; radius = GRID_SIZE * 3; } // Tier 1: White
+    // Enhanced Colors & Tiers Logic
+    if (killStreak >= 35) { tier = 7; color = 'rgba(180, 0, 255, 0.6)'; innerColor = '#e040fb'; radius = GRID_SIZE * 8; }
+    else if (killStreak >= 30) { tier = 6; color = 'rgba(255, 50, 50, 0.5)'; innerColor = '#ff1744'; radius = GRID_SIZE * 6.5; }
+    else if (killStreak >= 25) { tier = 5; color = 'rgba(255, 165, 0, 0.45)'; innerColor = '#ff9100'; radius = GRID_SIZE * 5.5; }
+    else if (killStreak >= 20) { tier = 4; color = 'rgba(255, 215, 0, 0.4)'; innerColor = '#ffd700'; radius = GRID_SIZE * 4.5; }
+    else if (killStreak >= 15) { tier = 3; color = 'rgba(0, 255, 100, 0.35)'; innerColor = '#00e676'; radius = GRID_SIZE * 4; }
+    else if (killStreak >= 10) { tier = 2; color = 'rgba(0, 191, 255, 0.3)'; innerColor = '#00b0ff'; radius = GRID_SIZE * 3.5; }
+    else { tier = 1; color = 'rgba(255, 255, 255, 0.25)'; innerColor = '#ffffff'; radius = GRID_SIZE * 3; }
+
+    // Dynamic Pulse
+    const pulseSpeed = 300 - (tier * 20);
+    const pulse = Math.sin(time / pulseSpeed) * (GRID_SIZE * (0.1 + tier * 0.05));
+    radius += pulse;
+
+    // Active Ability Pulse (Tier 7)
+    if (tier === 7 && auraTimer < 5000) {
+        color = 'rgba(220, 100, 255, 0.8)';
+        innerColor = '#ffffff';
+        radius += GRID_SIZE;
+    }
 
     ctx.save();
     ctx.translate(cx, cy);
     
-    // Draw Aura
+    // Use additive blending for "glowing" effect
+    if (typeof lowQualityMode === 'undefined' || !lowQualityMode) ctx.globalCompositeOperation = 'screen';
+    
+    // 1. Base Glow (All Tiers)
     const grad = ctx.createRadialGradient(0, 0, radius * 0.2, 0, 0, radius);
     grad.addColorStop(0, color);
     grad.addColorStop(1, 'rgba(0,0,0,0)');
-    
     ctx.fillStyle = grad;
     ctx.beginPath();
     ctx.arc(0, 0, radius, 0, Math.PI * 2);
+    ctx.fill();
+
+    // 2. Rotating Rings (Tier 2+)
+    if (tier >= 2) {
+        ctx.save();
+        ctx.rotate(time / (2000 - tier * 100));
+        ctx.strokeStyle = innerColor;
+        ctx.lineWidth = 1 + (tier * 0.5);
+        ctx.globalAlpha = 0.6;
+        ctx.setLineDash([15 + tier, 10]); 
+        ctx.beginPath();
+        ctx.arc(0, 0, radius * 0.7, 0, Math.PI * 2);
+        ctx.stroke();
+        ctx.restore();
+    }
+
+    // 3. Geometric Shapes (Tier 3+)
+    if (tier >= 3) {
+        ctx.save();
+        ctx.rotate(-time / (2500 - tier * 150));
+        ctx.strokeStyle = innerColor;
+        ctx.lineWidth = 2;
+        ctx.globalAlpha = 0.5;
+        
+        const sides = tier; // Triangle (3) -> Heptagon (7)
+        const shapeRadius = radius * 0.5;
+        
+        ctx.beginPath();
+        for (let i = 0; i <= sides; i++) {
+            const angle = (i * 2 * Math.PI / sides);
+            const x = Math.cos(angle) * shapeRadius;
+            const y = Math.sin(angle) * shapeRadius;
+            if (i === 0) ctx.moveTo(x, y);
+            else ctx.lineTo(x, y);
+        }
+        ctx.closePath();
+        ctx.stroke();
+        
+        // Fill shape for higher tiers
+        if (tier >= 5) {
+            ctx.fillStyle = color;
+            ctx.globalAlpha = 0.2;
+            ctx.fill();
+        }
+        ctx.restore();
+    }
+
+    // 4. Complex Runes / Spikes (Tier 6+)
+    if (tier >= 6) {
+        ctx.save();
+        ctx.rotate(time / 1000);
+        ctx.fillStyle = innerColor;
+        ctx.globalAlpha = 0.3;
+        const spikes = tier * 2;
+        const outerR = radius * 0.9;
+        const innerR = radius * 0.8;
+        
+        ctx.beginPath();
+        for(let i=0; i<spikes*2; i++){
+            const r = (i%2 === 0) ? outerR : innerR;
+            const a = (Math.PI * i) / spikes;
+            ctx.lineTo(Math.cos(a)*r, Math.sin(a)*r);
+        }
+        ctx.closePath();
+        ctx.fill();
+        ctx.restore();
+    }
+
+    // 5. Orbiting Particles (Tier 4+) - NEW
+    if (tier >= 4 && (typeof lowQualityMode === 'undefined' || !lowQualityMode)) {
+        const particleCount = (tier - 3) * 3;
+        const orbitRadius = radius * 0.9;
+        ctx.fillStyle = innerColor;
+        for(let i=0; i<particleCount; i++) {
+            const angle = (time / 1000) + (i * (Math.PI * 2 / particleCount));
+            const px = Math.cos(angle) * orbitRadius;
+            const py = Math.sin(angle) * orbitRadius;
+            ctx.beginPath();
+            ctx.arc(px, py, 3, 0, Math.PI * 2);
+            ctx.fill();
+        }
+    }
+
+    // 6. Expanding Ripple (Tier 5+) - NEW
+    if (tier >= 5) {
+        const rippleLife = (time % 2000) / 2000; // 0 to 1
+        const rippleRadius = radius * rippleLife;
+        ctx.strokeStyle = innerColor;
+        ctx.globalAlpha = 1 - rippleLife;
+        ctx.lineWidth = 2;
+        ctx.beginPath();
+        ctx.arc(0, 0, rippleRadius, 0, Math.PI * 2);
+        ctx.stroke();
+    }
+
+    // 7. Core Energy (All Tiers)
+    ctx.shadowColor = innerColor;
+    ctx.shadowBlur = 10 + (tier * 5);
+    ctx.fillStyle = innerColor;
+    ctx.globalAlpha = 0.3 + (tier * 0.05);
+    ctx.beginPath();
+    ctx.arc(0, 0, radius * 0.3, 0, Math.PI * 2);
     ctx.fill();
     
     ctx.restore();

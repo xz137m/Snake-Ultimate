@@ -11,7 +11,7 @@ function handleKeyPress(e) {
         case 'ArrowDown': case 'KeyS': if (velocity.y !== -1) nextVelocity = { x: 0, y: 1 }; break;
         case 'ArrowLeft': case 'KeyA': if (velocity.x !== 1) nextVelocity = { x: -1, y: 0 }; break;
         case 'ArrowRight': case 'KeyD': if (velocity.x !== -1) nextVelocity = { x: 1, y: 0 }; break;
-        case 'Space': if (!isGameOver) isPaused = !isPaused; break;
+        case 'Space': if (!isGameOver) window.togglePause(); break;
     }
 }
 

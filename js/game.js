@@ -97,13 +97,22 @@ function getWrappedDistance(p1, p2) {
     return Math.sqrt(dx*dx + dy*dy);
 }
 
+function getWrappedDistanceSq(p1, p2) {
+    let dx = Math.abs(p1.x - p2.x);
+    let dy = Math.abs(p1.y - p2.y);
+    if (dx > TILE_COUNT_X / 2) dx = TILE_COUNT_X - dx;
+    if (dy > TILE_COUNT_Y / 2) dy = TILE_COUNT_Y - dy;
+    return dx*dx + dy*dy;
+}
+
 function manageChunks() {
     if (snake.length === 0) return;
     const head = snake[0];
     
     // 1. Culling: Remove fruits outside active chunk
+    const radiusSq = CHUNK_RADIUS * CHUNK_RADIUS;
     for (let i = foods.length - 1; i >= 0; i--) {
-        if (getWrappedDistance(head, foods[i]) > CHUNK_RADIUS) {
+        if (getWrappedDistanceSq(head, foods[i]) > radiusSq) {
             foods.splice(i, 1);
         }
     }
@@ -218,7 +227,7 @@ function updateSnake(movePlayer, moveWorld) {
         
         for (let part of snake) {
             if (head.x === part.x && head.y === part.y) {
-                gameOver();
+                takeDamage();
                 return;
             }
         }
@@ -647,6 +656,8 @@ window.startGame = startGame;
 window.saveGame = saveGame;
 window.refreshPets = refreshPets;
 window.getSafeSpawnPoint = getSafeSpawnPoint;
+window.givePlayerRewards = givePlayerRewards;
+window.togglePause = togglePause;
 
 function getSafeSpawnPoint() {
     let safe = false;
@@ -685,4 +696,77 @@ function getSafeSpawnPoint() {
         y = Math.floor(Math.random() * TILE_COUNT_Y);
     }
     return { x, y };
+}
+
+function givePlayerRewards(fruitTypeIndex, x, y) {
+    let fruit = FRUIT_TYPES[fruitTypeIndex];
+    
+    // Calculate Multipliers (Same as updateSnake)
+    let prestigeMult = Math.pow(2, prestigeLevel);
+    let dpLvl = upgrades.doublePoints;
+    let shopMult = (dpLvl === 0) ? 1 : dpLvl * Math.pow(2, Math.floor(dpLvl / 10));
+    let levelMult = Math.pow(1.5, playerLevel - 1);
+    let xpUpgradeMult = 1 + Math.log10(1 + upgrades.xpMult) * 0.5;
+    let permGoldMult = (1 + (prestigeUpgrades.permGold1 || 0) * 0.5) * (1 + (prestigeUpgrades.permGold2 || 0) * 4.0);
+    let permXpMult = (1 + (prestigeUpgrades.permXp || 0) * 0.1);
+    let scoreUpgrade = 1 + Math.log10(1 + upgrades.scoreMult) * 0.5;
+    let slayerGoldMult = (1 + (slayerUpgrades.gold1 || 0) * 0.05) * (1 + (slayerUpgrades.gold2 || 0) * 0.10);
+    
+    let points = (fruit.points * scoreUpgrade) * shopMult * prestigeMult * levelMult * permGoldMult * slayerGoldMult;
+    let gold = (fruit.gold * scoreUpgrade) * shopMult * prestigeMult * levelMult * permGoldMult * slayerGoldMult;
+    
+    // Diminishing XP & Time Scaling
+    let levelDiff = Math.max(0, playerLevel - fruit.reqLevel);
+    let dimFactor = 1 / (1 + levelDiff * 0.15);
+    let sessionMinutes = (Date.now() - sessionStartTime) / 60000;
+    let timeFactor = Math.max(0.1, 1 - (sessionMinutes * 0.002));
+
+    let xpGain = fruit.xp * prestigeMult * xpUpgradeMult * permXpMult * dimFactor * timeFactor;
+
+    // Apply Rewards
+    score += Math.floor(points);
+    let goldGained = Math.floor(gold);
+    coins += goldGained;
+    
+    if (goldGained > 0) createFloatingText(x * GRID_SIZE, y * GRID_SIZE, `+${formatNumber(goldGained)} Gold`, '#ffd700');
+    console.log('Pet reward sent: Gold +' + goldGained); // Console Verification
+
+    let currentCap = getCurrentLevelCap();
+    if (playerLevel < currentCap) {
+        let xpGained = Math.floor(xpGain);
+        currentXp += xpGained;
+        if (xpGained > 0) createFloatingText(x * GRID_SIZE, y * GRID_SIZE - 20, `+${formatNumber(xpGained)} XP`, '#00ffff');
+        
+        let xpNeeded = Math.floor(1000 * Math.pow(playerLevel, 2.5));
+        if (currentXp >= xpNeeded) {
+            currentXp -= xpNeeded;
+            playerLevel++;
+            TILE_COUNT_X = 20 + (playerLevel * 2);
+            TILE_COUNT_Y = 20 + (playerLevel * 2);
+            playSound('eat');
+        }
+    }
+    
+    growthBuffer += (fruit.growth + upgrades.growthBoost - 1);
+    
+    updateScore();
+    updateXpBar();
+    updateProgress();
+    playSound('eat');
+    createParticles(x * GRID_SIZE + GRID_SIZE/2, y * GRID_SIZE + GRID_SIZE/2, fruit.color);
+}
+
+function togglePause() {
+    if (isGameOver) return;
+    isPaused = !isPaused;
+    const overlay = document.getElementById('pause-overlay');
+    if (overlay) {
+        if (isPaused) {
+            overlay.classList.remove('hidden');
+            overlay.style.display = 'flex';
+        } else {
+            overlay.classList.add('hidden');
+            overlay.style.display = 'none';
+        }
+    }
 }

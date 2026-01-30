@@ -92,6 +92,12 @@ function playSound(type) {
 function createParticles(x, y, color) {
     if (typeof particles === 'undefined') return;
     if (!particlesEnabled) return;
+    
+    // Optimization: Limit total particles to 50
+    if (particles.length > 50) {
+        particles.splice(0, particles.length - 50 + 12);
+    }
+
     for (let i = 0; i < 12; i++) {
         particles.push({
             x: x,
