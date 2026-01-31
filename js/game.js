@@ -1,6 +1,8 @@
 let autoSaveInterval;
 let timeSinceWorldUpdate = 0;
 let sessionStartTime = Date.now();
+let fpsInterval = 1000 / 144;
+let lastFrameTime = 0;
 const CHUNK_RADIUS = 65; // Expanded Active Zone (~1300px)
 const MAX_ACTIVE_FRUITS = 150; // Hard limit for performance
 const SPAWN_BATCH_SIZE = 5; // Max fruits to spawn per frame
@@ -182,6 +184,12 @@ function startGame() {
     
     // Mobile Performance Check & UI Setup
     const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent) || window.innerWidth < 800;
+    
+    // Performance Mode: Lock FPS (60 on Mobile, 144 on PC)
+    const targetFPS = isMobile ? 60 : 144;
+    fpsInterval = 1000 / targetFPS;
+    lastFrameTime = performance.now();
+
     if (isMobile) {
         lowQualityMode = true;
         particlesEnabled = false;
@@ -508,6 +516,11 @@ let frameCount = 0;
 function runGameLoop(timestamp) {
     if (isGameOver || !renderLoopId) return;
     renderLoopId = requestAnimationFrame(runGameLoop);
+
+    // FPS Throttling
+    const elapsed = timestamp - lastFrameTime;
+    if (elapsed < fpsInterval) return;
+    lastFrameTime = timestamp - (elapsed % fpsInterval);
 
     if (!isPaused) {
         if (!lastUpdateTime) lastUpdateTime = timestamp;

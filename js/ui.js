@@ -413,6 +413,20 @@ function setupMobileUI() {
     style.id = 'mobile-ui-styles';
     style.innerHTML = `
         @media (max-width: 800px) {
+            /* Hide Mini-map on Mobile */
+            #minimapCanvas { display: none !important; }
+
+            /* Compact HUD for Mobile */
+            #score, #coinsDisplay, #levelDisplay {
+                font-size: 14px !important;
+            }
+            /* Force HUD elements to single line if possible */
+            .hud-container, .stats-bar {
+                display: flex !important;
+                flex-wrap: wrap !important;
+                gap: 10px !important;
+            }
+
             /* Responsive Grids for Pets/Shop */
             #pet-items, #shop-items, #slayer-shop-items, #rebirth-items {
                 grid-template-columns: repeat(auto-fill, minmax(90px, 1fr)) !important;
@@ -428,10 +442,10 @@ function setupMobileUI() {
             /* Virtual Joystick */
             #virtual-joystick-zone {
                 position: fixed;
-                bottom: 30px;
-                left: 30px;
-                width: 120px;
-                height: 120px;
+                bottom: 20px;
+                left: 20px;
+                width: 100px;
+                height: 100px;
                 background: rgba(255, 255, 255, 0.05);
                 border: 2px solid rgba(255, 255, 255, 0.15);
                 border-radius: 50%;

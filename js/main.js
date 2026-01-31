@@ -102,6 +102,16 @@ document.addEventListener('DOMContentLoaded', () => {
     // 3. التهيئة الأولية
     initMobileControls();
     initBackgroundAnimation();
+    
+    // Dynamic Scaling for Mobile
+    function resizeGame() {
+        if (canvas) {
+            canvas.width = window.innerWidth;
+            canvas.height = window.innerHeight;
+        }
+    }
+    window.addEventListener('resize', resizeGame);
+    resizeGame();
 
     // تطبيق اللغة وتحديث النصوص (بما في ذلك أعلى نقاط)
     if(typeof window.setLanguage === 'function') window.setLanguage(currentLanguage);

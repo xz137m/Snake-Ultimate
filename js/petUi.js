@@ -257,7 +257,9 @@ function playGachaAnimation(winningPet) {
     centerLine.appendChild(arrowBottom);
 
     // 4. Generate Cards
-    const cardWidth = 140;
+    const isMobile = window.innerWidth < 768;
+    const cardWidth = isMobile ? 90 : 140;
+    const cardHeight = isMobile ? 140 : 220;
     const gap = 20;
     const totalCards = 40; 
     const winnerIndex = 30; // Winner position
@@ -284,7 +286,7 @@ function playGachaAnimation(winningPet) {
         }
 
         Object.assign(card.style, {
-            minWidth: `${cardWidth}px`, height: '220px',
+            minWidth: `${cardWidth}px`, height: `${cardHeight}px`,
             border: `2px solid ${borderColor}`, borderRadius: '12px',
             background: bgGradient, display: 'flex', flexDirection: 'column',
             alignItems: 'center', justifyContent: 'center',
