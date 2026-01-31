@@ -402,6 +402,199 @@ function showSaveIndicator() {
     }, 1500);
 }
 
+function setupMobileUI() {
+    if (document.getElementById('mobile-ui-styles')) return;
+
+    const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent) || window.innerWidth < 800;
+    if (!isMobile) return;
+
+    // Inject CSS for Mobile Controls & Responsiveness
+    const style = document.createElement('style');
+    style.id = 'mobile-ui-styles';
+    style.innerHTML = `
+        @media (max-width: 800px) {
+            /* Responsive Grids for Pets/Shop */
+            #pet-items, #shop-items, #slayer-shop-items, #rebirth-items {
+                grid-template-columns: repeat(auto-fill, minmax(90px, 1fr)) !important;
+                gap: 8px !important;
+            }
+            .pet-slot, .shop-item {
+                min-height: auto !important;
+            }
+            button {
+                min-height: 44px; /* Touch friendly */
+            }
+            
+            /* Virtual Joystick */
+            #virtual-joystick-zone {
+                position: fixed;
+                bottom: 30px;
+                left: 30px;
+                width: 120px;
+                height: 120px;
+                background: rgba(255, 255, 255, 0.05);
+                border: 2px solid rgba(255, 255, 255, 0.15);
+                border-radius: 50%;
+                z-index: 9999;
+                touch-action: none;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                backdrop-filter: blur(2px);
+            }
+            #virtual-joystick-knob {
+                width: 50px;
+                height: 50px;
+                background: rgba(0, 255, 255, 0.5);
+                border-radius: 50%;
+                box-shadow: 0 0 15px rgba(0, 255, 255, 0.3);
+                pointer-events: none;
+                transform: translate(0, 0);
+            }
+
+            /* Boost Button */
+            #mobile-boost-btn {
+                position: fixed;
+                bottom: 50px;
+                right: 30px;
+                width: 80px;
+                height: 80px;
+                background: rgba(255, 50, 50, 0.4);
+                border: 2px solid rgba(255, 50, 50, 0.6);
+                border-radius: 50%;
+                color: white;
+                font-weight: bold;
+                font-family: sans-serif;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                z-index: 9999;
+                touch-action: none;
+                user-select: none;
+                backdrop-filter: blur(2px);
+                font-size: 24px;
+            }
+            #mobile-boost-btn:active {
+                background: rgba(255, 50, 50, 0.8);
+                transform: scale(0.95);
+            }
+
+            /* Fullscreen Button */
+            #mobile-fs-btn {
+                position: fixed;
+                top: 10px;
+                left: 50%;
+                transform: translateX(-50%);
+                background: rgba(0, 0, 0, 0.5);
+                border: 1px solid rgba(255, 255, 255, 0.3);
+                color: #fff;
+                padding: 6px 16px;
+                border-radius: 20px;
+                z-index: 10000;
+                font-size: 12px;
+                pointer-events: auto;
+                backdrop-filter: blur(4px);
+            }
+
+            /* Prevent Zoom/Scroll/Selection */
+            body {
+                overflow: hidden;
+                touch-action: none;
+                -webkit-user-select: none;
+                user-select: none;
+                -webkit-touch-callout: none;
+            }
+        }
+    `;
+    document.head.appendChild(style);
+
+    // Create Elements
+    const joystick = document.createElement('div');
+    joystick.id = 'virtual-joystick-zone';
+    const knob = document.createElement('div');
+    knob.id = 'virtual-joystick-knob';
+    joystick.appendChild(knob);
+    document.body.appendChild(joystick);
+
+    const boostBtn = document.createElement('div');
+    boostBtn.id = 'mobile-boost-btn';
+    boostBtn.innerText = '⚡';
+    document.body.appendChild(boostBtn);
+
+    const fsBtn = document.createElement('button');
+    fsBtn.id = 'mobile-fs-btn';
+    fsBtn.innerText = '⛶ Fullscreen';
+    fsBtn.onclick = () => {
+        if (!document.fullscreenElement) {
+            document.documentElement.requestFullscreen().catch(err => console.log(err));
+        } else {
+            document.exitFullscreen();
+        }
+    };
+    document.body.appendChild(fsBtn);
+
+    // Joystick Logic
+    let startX, startY;
+    const maxRadius = 35;
+
+    joystick.addEventListener('touchstart', (e) => {
+        e.preventDefault();
+        const touch = e.changedTouches[0];
+        const rect = joystick.getBoundingClientRect();
+        startX = rect.left + rect.width / 2;
+        startY = rect.top + rect.height / 2;
+        updateJoystick(touch.clientX, touch.clientY);
+    }, { passive: false });
+
+    joystick.addEventListener('touchmove', (e) => {
+        e.preventDefault();
+        const touch = e.changedTouches[0];
+        updateJoystick(touch.clientX, touch.clientY);
+    }, { passive: false });
+
+    joystick.addEventListener('touchend', (e) => {
+        e.preventDefault();
+        knob.style.transform = `translate(0px, 0px)`;
+    }, { passive: false });
+
+    function updateJoystick(clientX, clientY) {
+        let dx = clientX - startX;
+        let dy = clientY - startY;
+        const distance = Math.sqrt(dx*dx + dy*dy);
+        
+        if (distance > maxRadius) {
+            const ratio = maxRadius / distance;
+            dx *= ratio;
+            dy *= ratio;
+        }
+        
+        knob.style.transform = `translate(${dx}px, ${dy}px)`;
+
+        if (Math.abs(dx) > Math.abs(dy)) {
+            if (dx > 10 && velocity.x !== -1) nextVelocity = { x: 1, y: 0 };
+            else if (dx < -10 && velocity.x !== 1) nextVelocity = { x: -1, y: 0 };
+        } else {
+            if (dy > 10 && velocity.y !== -1) nextVelocity = { x: 0, y: 1 };
+            else if (dy < -10 && velocity.y !== 1) nextVelocity = { x: 0, y: -1 };
+        }
+    }
+
+    // Boost Logic
+    boostBtn.addEventListener('touchstart', (e) => {
+        e.preventDefault();
+        isSprinting = true;
+    }, { passive: false });
+
+    boostBtn.addEventListener('touchend', (e) => {
+        e.preventDefault();
+        isSprinting = false;
+    }, { passive: false });
+
+    // Prevent default gestures
+    document.addEventListener('gesturestart', (e) => e.preventDefault());
+    document.addEventListener('dblclick', (e) => e.preventDefault());
+}
+
 window.setLanguage = setLanguage;
 window.updateTexts = updateTexts;
 window.updateScore = updateScore;
@@ -416,3 +609,4 @@ window.cycleBrightness = cycleBrightness;
 window.showSaveIndicator = showSaveIndicator;
 window.showNotification = showNotification;
 window.showConfirmation = showConfirmation;
+window.setupMobileUI = setupMobileUI;

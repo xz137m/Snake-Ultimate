@@ -179,6 +179,17 @@ function spawnFoodInChunk() {
 
 function startGame() {
     menuOverlay.classList.add('hidden');
+    
+    // Mobile Performance Check & UI Setup
+    const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent) || window.innerWidth < 800;
+    if (isMobile) {
+        lowQualityMode = true;
+        particlesEnabled = false;
+        glowEnabled = false;
+        if (typeof setupMobileUI === 'function') setupMobileUI();
+        if (typeof updateSettingsButtons === 'function') updateSettingsButtons();
+    }
+
     initGame();
     if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
     if (audioCtx.state === 'suspended') audioCtx.resume();
