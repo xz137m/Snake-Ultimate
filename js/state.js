@@ -19,6 +19,7 @@ var slayerUpgrades = JSON.parse(localStorage.getItem('snakeSlayerUpgrades')) || 
 var currentHearts = 1, currentStamina = 100, isSprinting = false, isExhausted = false;
 var staminaRegenTimestamp = 0, isPlayerInvulnerable = false, playerInvulnerabilityTime = 0, shakeEndTime = 0, auraTimer = 0;
 var soundEnabled = localStorage.getItem('snakeSound') !== 'false';
+var sessionStartTime = Date.now();
 var particlesEnabled = localStorage.getItem('snakeParticles') !== 'false';
 var showEatRange = localStorage.getItem('snakeShowRange') !== 'false';
 var glowEnabled = localStorage.getItem('snakeGlow') !== 'false';

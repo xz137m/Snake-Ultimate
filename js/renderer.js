@@ -1,4 +1,13 @@
 var activeShootingStars = [], shockwaves = [];
+const PI2 = Math.PI * 2;
+
+// Pre-calculate star positions to save CPU cycles in the render loop
+const starCache = Array.from({ length: 100 }, (_, i) => {
+    let sx = (Math.sin(i * 12.9898) * 43758.5453) % 1 * 2000;
+    let sy = (Math.cos(i * 78.233) * 43758.5453) % 1 * 2000;
+    if (sx < 0) sx += 2000; if (sy < 0) sy += 2000;
+    return { x: sx, y: sy, size: (i % 2) + 1 };
+});
 
 function updateParticles() {
     if (typeof lowQualityMode !== 'undefined' && lowQualityMode) {
@@ -64,18 +73,13 @@ function draw() {
     if (!lowQualityMode) {
     ctx.save();
     ctx.fillStyle = 'rgba(255, 255, 255, 0.15)';
-    for(let i=0; i<100; i++) {
-        let sx = (Math.sin(i * 12.9898) * 43758.5453) % 1 * 2000; 
-        let sy = (Math.cos(i * 78.233) * 43758.5453) % 1 * 2000;
-        if(sx < 0) sx += 2000; if(sy < 0) sy += 2000;
-
-        let px = (sx - camera.x * 0.2) % (canvas.width + 200);
-        let py = (sy - camera.y * 0.2) % (canvas.height + 200);
+    for (let i = 0; i < starCache.length; i++) {
+        const s = starCache[i];
+        let px = (s.x - camera.x * 0.2) % (canvas.width + 200);
+        let py = (s.y - camera.y * 0.2) % (canvas.height + 200);
         if (px < -100) px += canvas.width + 200;
         if (py < -100) py += canvas.height + 200;
-
-        const size = (i % 2) + 1;
-        ctx.fillRect(px - 100, py - 100, size, size);
+        ctx.fillRect(px - 100, py - 100, s.size, s.size);
     }
     ctx.restore();
     }
@@ -138,33 +142,34 @@ function draw() {
     const startY = Math.floor(camera.y / GRID_SIZE) * GRID_SIZE - GRID_SIZE;
     const endY = startY + canvas.height + GRID_SIZE * 2;
 
-    const time = Date.now() / 2000;
-    const scanPos = (time % 1) * (TILE_COUNT_X * GRID_SIZE + 800) - 400;
-    ctx.fillStyle = '#64c8ff'; // rgb(100, 200, 255) - Base color
+    // Checkerboard Pattern (Dark & Luxurious)
+    ctx.fillStyle = 'rgba(25, 30, 45, 0.3)'; // لون داكن وهادئ للمربعات
 
-    let currentAlpha = -1; // Optimization: Cache alpha state
-    for (let x = startX; x <= endX; x += GRID_SIZE) {
-        for (let y = startY; y <= endY; y += GRID_SIZE) {
-            if (x >= 0 && x < TILE_COUNT_X * GRID_SIZE && y >= 0 && y < TILE_COUNT_Y * GRID_SIZE) {
-                const col = Math.floor(x / GRID_SIZE);
-                const row = Math.floor(y / GRID_SIZE);
-                if ((col + row) % 2 === 0) {
-                    const dist = Math.abs((x + y) - scanPos);
-                    let alpha = 0.05;
-                    if (dist < 200) {
-                        alpha += (1 - dist / 200) * 0.1;
-                    }
-                    // Optimization: Only change context state if alpha changed significantly
-                    if (Math.abs(alpha - currentAlpha) > 0.001) {
-                        ctx.globalAlpha = alpha;
-                        currentAlpha = alpha;
-                    }
-                    ctx.fillRect(x, y, GRID_SIZE, GRID_SIZE);
-                }
+    for (let x = startX; x < endX; x += GRID_SIZE) {
+        for (let y = startY; y < endY; y += GRID_SIZE) {
+            const col = Math.floor(x / GRID_SIZE);
+            const row = Math.floor(y / GRID_SIZE);
+            if ((col + row) % 2 === 0) {
+                ctx.fillRect(x, y, GRID_SIZE, GRID_SIZE);
             }
         }
     }
-    ctx.globalAlpha = 1.0;
+
+    // Optimization: Scanline effect using a single gradient instead of per-tile calculation
+    const time = Date.now() / 2000;
+    const scanPos = (time % 1) * (TILE_COUNT_X * GRID_SIZE + 800) - 400;
+    
+    // Draw scanline only if visible
+    if (!lowQualityMode) {
+        const scanGradient = ctx.createLinearGradient(scanPos - 200, scanPos - 200, scanPos + 200, scanPos + 200);
+        scanGradient.addColorStop(0, 'rgba(100, 200, 255, 0)');
+        scanGradient.addColorStop(0.5, 'rgba(100, 200, 255, 0.08)');
+        scanGradient.addColorStop(1, 'rgba(100, 200, 255, 0)');
+        
+        ctx.fillStyle = scanGradient;
+        // Draw the gradient over the visible area
+        ctx.fillRect(startX, startY, endX - startX, endY - startY);
+    }
 
     if (snake.length > 0 && !lowQualityMode) {
         const head = snake[0];
@@ -198,7 +203,7 @@ function draw() {
         }
 
         ctx.beginPath();
-        ctx.arc(sw.x, sw.y, sw.radius, 0, Math.PI * 2);
+        ctx.arc(sw.x, sw.y, sw.radius, 0, PI2);
         ctx.strokeStyle = sw.color;
         ctx.globalAlpha = sw.alpha;
         ctx.lineWidth = sw.lineWidth;
@@ -268,7 +273,7 @@ function draw() {
              ctx.fillStyle = type.color;
              ctx.globalAlpha = 0.4;
              ctx.beginPath();
-             ctx.ellipse(cx, cy, 20, 6, 0, 0, Math.PI*2);
+             ctx.ellipse(cx, cy, 20, 6, 0, 0, PI2);
              ctx.fill();
              ctx.restore();
         }
@@ -277,7 +282,7 @@ function draw() {
         ctx.shadowColor = (glowEnabled && !lowQualityMode) ? type.glow : 'transparent';
         ctx.shadowBlur = (glowEnabled && !lowQualityMode) ? 15 : 0;
         ctx.beginPath();
-        ctx.arc(cx, cy, radius, 0, Math.PI * 2);
+        ctx.arc(cx, cy, radius, 0, PI2);
         ctx.fill();
         ctx.shadowBlur = 0;
 
@@ -287,7 +292,7 @@ function draw() {
             grad.addColorStop(1, 'rgba(0, 0, 0, 0.15)');
             ctx.fillStyle = grad;
             ctx.beginPath();
-            ctx.arc(cx, cy, radius, 0, Math.PI * 2);
+            ctx.arc(cx, cy, radius, 0, PI2);
             ctx.fill();
         }
 
@@ -313,7 +318,7 @@ function draw() {
             ctx.globalAlpha = opacity;
             ctx.lineWidth = 2;
             ctx.beginPath();
-            ctx.arc(0, 0, radius + 3 + pulse, 0, Math.PI * 2); // Shrunk radius
+            ctx.arc(0, 0, radius + 3 + pulse, 0, PI2); // Shrunk radius
             ctx.stroke();
 
             if (type.points >= 50000) {
@@ -322,7 +327,7 @@ function draw() {
                 ctx.lineWidth = 2;
                 ctx.setLineDash([8, 12]);
                 ctx.beginPath();
-                ctx.arc(0, 0, radius + 6, 0, Math.PI * 2); // Shrunk radius
+                ctx.arc(0, 0, radius + 6, 0, PI2); // Shrunk radius
                 ctx.setLineDash([3, 6]);
                 const sides = 6;
                 const r = radius + 12;
@@ -342,7 +347,7 @@ function draw() {
                     const py = Math.sin(angle) * dist;
                     ctx.fillStyle = '#ffffff';
                     ctx.beginPath();
-                    ctx.arc(px, py, 2.5, 0, Math.PI*2);
+                    ctx.arc(px, py, 2.5, 0, PI2);
                     ctx.fill();
                 }
             }
@@ -458,14 +463,14 @@ function draw() {
                 lx = x + 4; ly = y + 12; rx = x + 12; ry = y + 12;
             }
 
-            ctx.beginPath(); ctx.arc(lx + 2, ly + 2, 3.5, 0, Math.PI*2); ctx.fill();
-            ctx.beginPath(); ctx.arc(rx + 2, ry + 2, 3.5, 0, Math.PI*2); ctx.fill();
+            ctx.beginPath(); ctx.arc(lx + 2, ly + 2, 3.5, 0, PI2); ctx.fill();
+            ctx.beginPath(); ctx.arc(rx + 2, ry + 2, 3.5, 0, PI2); ctx.fill();
 
             ctx.fillStyle = 'black';
             let px = velocity.x * 1.5;
             let py = velocity.y * 1.5;
-            ctx.beginPath(); ctx.arc(lx + 2 + px, ly + 2 + py, 1.5, 0, Math.PI*2); ctx.fill();
-            ctx.beginPath(); ctx.arc(rx + 2 + px, ry + 2 + py, 1.5, 0, Math.PI*2); ctx.fill();
+            ctx.beginPath(); ctx.arc(lx + 2 + px, ly + 2 + py, 1.5, 0, PI2); ctx.fill();
+            ctx.beginPath(); ctx.arc(rx + 2 + px, ry + 2 + py, 1.5, 0, PI2); ctx.fill();
 
             ctx.fillStyle = 'rgba(0,0,0,0.3)';
             let nx1, ny1, nx2, ny2;
@@ -473,8 +478,8 @@ function draw() {
             else if (velocity.x === -1) { nx1 = x+4; ny1 = y+7; nx2 = x+4; ny2 = y+13; }
             else if (velocity.y === -1) { nx1 = x+7; ny1 = y+4; nx2 = x+13; ny2 = y+4; }
             else { nx1 = x+7; ny1 = y+16; nx2 = x+13; ny2 = y+16; }
-            ctx.beginPath(); ctx.arc(nx1, ny1, 1.5, 0, Math.PI*2); ctx.fill();
-            ctx.beginPath(); ctx.arc(nx2, ny2, 1.5, 0, Math.PI*2); ctx.fill();
+            ctx.beginPath(); ctx.arc(nx1, ny1, 1.5, 0, PI2); ctx.fill();
+            ctx.beginPath(); ctx.arc(nx2, ny2, 1.5, 0, PI2); ctx.fill();
         } else {
             let size = GRID_SIZE - 2;
             let offset = 1;
@@ -495,7 +500,7 @@ function draw() {
             if (!lowQualityMode) {
                 ctx.fillStyle = 'rgba(255, 255, 255, 0.15)';
                 ctx.beginPath();
-                ctx.arc(x + 6, y + 6, 3, 0, Math.PI * 2);
+                ctx.arc(x + 6, y + 6, 3, 0, PI2);
                 const cx = x + GRID_SIZE / 2;
                 const cy = y + GRID_SIZE / 2;
                 const bodyGrad = ctx.createRadialGradient(cx - 2, cy - 2, 2, cx, cy, 8);
@@ -526,7 +531,7 @@ function draw() {
         ctx.lineWidth = 2;
         const pulse = Math.sin(Date.now() / 100) * 4;
         ctx.beginPath();
-        ctx.arc(hx, hy, GRID_SIZE + 2 + pulse, 0, Math.PI * 2);
+        ctx.arc(hx, hy, GRID_SIZE + 2 + pulse, 0, PI2);
         ctx.fill();
         ctx.stroke();
         ctx.restore();
@@ -614,7 +619,7 @@ function drawMinimap() {
         minimapCtx.strokeStyle = '#ffffff';
         minimapCtx.lineWidth = 1;
         minimapCtx.beginPath();
-        minimapCtx.arc(px, py, 5, 0, Math.PI * 2);
+        minimapCtx.arc(px, py, 5, 0, PI2);
         minimapCtx.stroke();
 
         minimapCtx.fillStyle = '#ffffff';
@@ -675,7 +680,7 @@ function drawPlayerAura() {
     grad.addColorStop(1, 'rgba(0,0,0,0)');
     ctx.fillStyle = grad;
     ctx.beginPath();
-    ctx.arc(0, 0, radius, 0, Math.PI * 2);
+    ctx.arc(0, 0, radius, 0, PI2);
     ctx.fill();
 
     // 2. Rotating Rings (Tier 2+)
@@ -687,7 +692,7 @@ function drawPlayerAura() {
         ctx.globalAlpha = 0.6;
         ctx.setLineDash([15 + tier, 10]); 
         ctx.beginPath();
-        ctx.arc(0, 0, radius * 0.7, 0, Math.PI * 2);
+        ctx.arc(0, 0, radius * 0.7, 0, PI2);
         ctx.stroke();
         ctx.restore();
     }
@@ -754,7 +759,7 @@ function drawPlayerAura() {
             const px = Math.cos(angle) * orbitRadius;
             const py = Math.sin(angle) * orbitRadius;
             ctx.beginPath();
-            ctx.arc(px, py, 3, 0, Math.PI * 2);
+            ctx.arc(px, py, 3, 0, PI2);
             ctx.fill();
         }
     }
@@ -767,7 +772,7 @@ function drawPlayerAura() {
         ctx.globalAlpha = 1 - rippleLife;
         ctx.lineWidth = 2;
         ctx.beginPath();
-        ctx.arc(0, 0, rippleRadius, 0, Math.PI * 2);
+        ctx.arc(0, 0, rippleRadius, 0, PI2);
         ctx.stroke();
     }
 
@@ -777,7 +782,7 @@ function drawPlayerAura() {
     ctx.fillStyle = innerColor;
     ctx.globalAlpha = 0.3 + (tier * 0.05);
     ctx.beginPath();
-    ctx.arc(0, 0, radius * 0.3, 0, Math.PI * 2);
+    ctx.arc(0, 0, radius * 0.3, 0, PI2);
     ctx.fill();
     
     ctx.restore();

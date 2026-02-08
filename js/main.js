@@ -159,7 +159,7 @@ function initMobileControls() {
                     dx *= ratio;
                     dy *= ratio;
                 }
-                if(joystickKnob) joystickKnob.style.transform = `translate(calc(-50% + ${dx}px), calc(-50% + px))`;
+                if(joystickKnob) joystickKnob.style.transform = `translate(calc(-50% + ${dx}px), calc(-50% + ${dy}px))`;
                 
                 if (Math.abs(dx) > Math.abs(dy)) {
                     if (dx > 10 && velocity.x !== -1) nextVelocity = { x: 1, y: 0 };

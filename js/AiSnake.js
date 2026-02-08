@@ -4,7 +4,9 @@ class AiSnake {
         this.isBoss = isBoss;
         let baseHealth = isBoss ? 3 : 1;
         // Only Bosses get health scaling. Normal enemies always have 1 HP.
-        let scaling = isBoss ? (Math.floor(playerLevel / 5) + Math.floor(souls / 500)) : 0;
+        const pLevel = typeof playerLevel !== 'undefined' ? playerLevel : 1;
+        const pSouls = typeof souls !== 'undefined' ? souls : 0;
+        let scaling = isBoss ? (Math.floor(pLevel / 5) + Math.floor(pSouls / 500)) : 0;
         this.health = baseHealth + scaling;
         this.maxHealth = this.health;
         this.length = isBoss ? 25 : 10;
@@ -34,18 +36,34 @@ class AiSnake {
             this.targetOffsetY = Math.floor(Math.random() * 20) - 10;
         }
         if (!this.isBoss) {
-            if (this.aiType === 0) {
-                this.color = '#b71c1c'; 
-                this.headColor = '#880e4f';
-            } else if (this.aiType === 1) {
-                this.color = '#0277bd'; 
-                this.headColor = '#01579b';
-            } else if (this.aiType === 2) {
-                this.color = '#ef6c00'; 
-                this.headColor = '#e65100';
+            const colors = [
+                { c: '#b71c1c', h: '#880e4f' }, // Type 0
+                { c: '#0277bd', h: '#01579b' }, // Type 1
+                { c: '#ef6c00', h: '#e65100' }  // Type 2
+            ];
+            if (colors[this.aiType]) {
+                this.color = colors[this.aiType].c;
+                this.headColor = colors[this.aiType].h;
             }
         }
         this.respawn();
+    }
+
+    willCollide(nx, ny) {
+        if (nx < 0) nx = TILE_COUNT_X - 1;
+        else if (nx >= TILE_COUNT_X) nx = 0;
+        if (ny < 0) ny = TILE_COUNT_Y - 1;
+        else if (ny >= TILE_COUNT_Y) ny = 0;
+
+        for (let i = 0; i < this.body.length; i++) {
+            if (this.body[i].x === nx && this.body[i].y === ny) return true;
+        }
+        if (typeof snake !== 'undefined') {
+            for (let i = 0; i < snake.length; i++) {
+                if (snake[i].x === nx && snake[i].y === ny) return true;
+            }
+        }
+        return false;
     }
 
     respawn() {
@@ -73,6 +91,13 @@ class AiSnake {
             }
             return;
         }
+
+        // 5-Chunk Optimization: Freeze AI if outside active zones
+        if (this.body.length > 0 && typeof window.isPositionActive === 'function') {
+            const head = this.body[0];
+            if (!window.isPositionActive(head.x, head.y)) return;
+        }
+
         if (this.isInvulnerable) {
             if (Date.now() - this.invulnerabilityTime > 2000) {
                 this.isInvulnerable = false;
@@ -85,11 +110,12 @@ class AiSnake {
 
         let isChasing = false;
         let distance = 0;
+        let distSq = 0;
         if (playerHead) {
             const dx = head.x - playerHead.x;
             const dy = head.y - playerHead.y;
-            distance = Math.sqrt(dx*dx + dy*dy);
-            if (distance <= this.detectionRange) {
+            distSq = dx*dx + dy*dy;
+            if (distSq <= this.detectionRange * this.detectionRange) {
                 isChasing = true;
             }
         }
@@ -99,33 +125,16 @@ class AiSnake {
                 this.shootCooldown -= speed; 
                 if (this.shootCooldown <= 0) {
                     this.shootCooldown = 5000;
+                    distance = Math.sqrt(distSq) || 1;
                     const dx = playerHead.x - head.x;
                     const dy = playerHead.y - head.y;
-                    const dist = Math.sqrt(dx*dx + dy*dy) || 1;
                     const projectileSpeed = 1.2;
-                    projectiles.push(new Projectile(head.x + (dx/dist)*0.5, head.y + (dy/dist)*0.5, (dx / dist) * projectileSpeed, (dy / dist) * projectileSpeed));
-                    playSound('over');
+                    if (typeof projectiles !== 'undefined') {
+                        projectiles.push(new Projectile(head.x + (dx/distance)*0.5, head.y + (dy/distance)*0.5, (dx / distance) * projectileSpeed, (dy / distance) * projectileSpeed));
+                    }
+                    if (typeof playSound === 'function') playSound('over');
                 }
             }
-            const willCollide = (move) => {
-                let nx = head.x + move.x;
-                let ny = head.y + move.y;
-                if (nx < 0) nx = TILE_COUNT_X - 1;
-                if (nx >= TILE_COUNT_X) nx = 0;
-                if (ny < 0) ny = TILE_COUNT_Y - 1;
-                if (ny >= TILE_COUNT_Y) ny = 0;
-                for (let part of this.body) {
-                    if (part.x === nx && part.y === ny) return true;
-                }
-                for (let part of snake) {
-                    if (part.x === nx && part.y === ny) return true;
-                }
-                return false;
-            };
-            const moves = [
-                { x: 0, y: -1 }, { x: 0, y: 1 }, 
-                { x: -1, y: 0 }, { x: 1, y: 0 }
-            ].filter(m => !(m.x === -this.velocity.x && m.y === -this.velocity.y));
 
             let rawTargetX = playerHead.x + this.targetOffsetX;
             let rawTargetY = playerHead.y + this.targetOffsetY;
@@ -152,7 +161,14 @@ class AiSnake {
             };
             const now = Date.now();
             const playerMoveDist = Math.abs(playerHead.x - this.lastPlayerX) + Math.abs(playerHead.y - this.lastPlayerY);
-            const currentIsSafe = !willCollide(this.velocity);
+            
+            let nextX = head.x + this.velocity.x;
+            let nextY = head.y + this.velocity.y;
+            if (nextX < 0) nextX = TILE_COUNT_X - 1;
+            else if (nextX >= TILE_COUNT_X) nextX = 0;
+            if (nextY < 0) nextY = TILE_COUNT_Y - 1;
+            else if (nextY >= TILE_COUNT_Y) nextY = 0;
+            const currentIsSafe = !this.willCollide(nextX, nextY);
             const shouldUpdatePath = !currentIsSafe || (playerMoveDist > 3) || (now - this.lastDecisionTime > 1000);
 
             if (!shouldUpdatePath) {
@@ -161,6 +177,8 @@ class AiSnake {
                 this.lastDecisionTime = now;
                 this.lastPlayerX = playerHead.x;
                 this.lastPlayerY = playerHead.y;
+
+                const moves = [{x:1, y:0}, {x:-1, y:0}, {x:0, y:1}, {x:0, y:-1}];
 
             // 3. ترتيب الحركات حسب القرب من "الهدف المحسوب"
             moves.sort((a, b) => {
@@ -209,7 +227,13 @@ class AiSnake {
             // البحث عن أفضل حركة آمنة
             let safeMove = null;
             for (let m of moves) {
-                if (!willCollide(m)) {
+                let mx = head.x + m.x;
+                if (mx < 0) mx = TILE_COUNT_X - 1;
+                else if (mx >= TILE_COUNT_X) mx = 0;
+                let my = head.y + m.y;
+                if (my < 0) my = TILE_COUNT_Y - 1;
+                else if (my >= TILE_COUNT_Y) my = 0;
+                if (!this.willCollide(mx, my)) {
                     safeMove = m;
                     break;
                 }
@@ -220,7 +244,13 @@ class AiSnake {
                         this.velocity = safeMove;
                         this.turnCooldown = 3;
                     } else {
-                        if (willCollide(this.velocity)) {
+                        let cx = head.x + this.velocity.x;
+                        if (cx < 0) cx = TILE_COUNT_X - 1;
+                        else if (cx >= TILE_COUNT_X) cx = 0;
+                        let cy = head.y + this.velocity.y;
+                        if (cy < 0) cy = TILE_COUNT_Y - 1;
+                        else if (cy >= TILE_COUNT_Y) cy = 0;
+                        if (this.willCollide(cx, cy)) {
                             this.velocity = safeMove;
                             this.turnCooldown = 3;
                         }
@@ -268,10 +298,15 @@ class AiSnake {
             viewTop = camera.y - GRID_SIZE * 2;
             viewBottom = camera.y + canvas.height + GRID_SIZE * 2;
         }
-        this.body.forEach((part, index) => {
+        
+        const isLowQuality = (typeof lowQualityMode !== 'undefined' && lowQualityMode);
+        const PI2 = Math.PI * 2;
+
+        for (let index = 0; index < this.body.length; index++) {
+            const part = this.body[index];
             const x = part.x * GRID_SIZE;
             const y = part.y * GRID_SIZE;
-            if (viewRight > 0 && (x < viewLeft || x > viewRight || y < viewTop || y > viewBottom)) return;
+            if (viewRight > 0 && (x < viewLeft || x > viewRight || y < viewTop || y > viewBottom)) continue;
             
             if (index === 0) {
                 if (this.isBoss) {
@@ -285,15 +320,15 @@ class AiSnake {
                 ctx.fill();
                 ctx.shadowBlur = 0;
                 ctx.fillStyle = this.isBoss ? '#00ff00' : '#ffeb3b';
-                ctx.beginPath(); ctx.arc(x + 6, y + 6, 2.5, 0, Math.PI*2); ctx.fill();
-                ctx.beginPath(); ctx.arc(x + 14, y + 6, 2.5, 0, Math.PI*2); ctx.fill();
+                ctx.beginPath(); ctx.arc(x + 6, y + 6, 2.5, 0, PI2); ctx.fill();
+                ctx.beginPath(); ctx.arc(x + 14, y + 6, 2.5, 0, PI2); ctx.fill();
             } else {
                 ctx.fillStyle = this.color;
                 ctx.beginPath();
                 if (ctx.roundRect) ctx.roundRect(x + 1, y + 1, GRID_SIZE - 2, GRID_SIZE - 2, 5);
                 else ctx.fillRect(x + 1, y + 1, GRID_SIZE - 2, GRID_SIZE - 2);
                 ctx.fill();
-                if (typeof lowQualityMode === 'undefined' || !lowQualityMode) {
+                if (!isLowQuality) {
                     const cx = x + GRID_SIZE / 2;
                     const cy = y + GRID_SIZE / 2;
                     const grad = ctx.createRadialGradient(cx - 2, cy - 2, 2, cx, cy, 8);
@@ -303,15 +338,19 @@ class AiSnake {
                     ctx.fill();
                 }
             }
-        });
+        }
         if (this.isBoss) {
             const head = this.body[0];
             const barWidth = GRID_SIZE * 2;
             const healthPercent = Math.max(0, this.health / this.maxHealth);
-            ctx.fillStyle = '#555';
-            ctx.fillRect(head.x * GRID_SIZE - barWidth/4, head.y * GRID_SIZE - 10, barWidth, 5);
-            ctx.fillStyle = '#00ff00';
-            ctx.fillRect(head.x * GRID_SIZE - barWidth/4, head.y * GRID_SIZE - 10, barWidth * healthPercent, 5);
+            const bx = head.x * GRID_SIZE - barWidth/4;
+            const by = head.y * GRID_SIZE - 10;
+            if (!(viewRight > 0 && (bx < viewLeft || bx > viewRight || by < viewTop || by > viewBottom))) {
+                ctx.fillStyle = '#555';
+                ctx.fillRect(bx, by, barWidth, 5);
+                ctx.fillStyle = '#00ff00';
+                ctx.fillRect(bx, by, barWidth * healthPercent, 5);
+            }
         }
         ctx.globalAlpha = 1.0;
     }

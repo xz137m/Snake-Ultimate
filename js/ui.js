@@ -402,211 +402,316 @@ function showSaveIndicator() {
     }, 1500);
 }
 
-function setupMobileUI() {
-    if (document.getElementById('mobile-ui-styles')) return;
+function setupResponsiveUI() {
+    if (document.getElementById('responsive-ui-styles')) return;
 
-    const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent) || window.innerWidth < 800;
-    if (!isMobile) return;
-
-    // Inject CSS for Mobile Controls & Responsiveness
+    // 1. Inject CSS for PC Sidebar, Mobile Topbar, and Fixes
     const style = document.createElement('style');
-    style.id = 'mobile-ui-styles';
+    style.id = 'responsive-ui-styles';
     style.innerHTML = `
-        @media (max-width: 800px) {
-            /* Hide Mini-map on Mobile */
-            #minimapCanvas { display: none !important; }
+        /* --- Shared Styles --- */
+        #game-stats-container {
+            position: fixed;
+            z-index: 1000;
+            background: rgba(0, 0, 0, 0.6);
+            backdrop-filter: blur(4px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 8px;
+            padding: 8px;
+            font-family: 'Segoe UI', sans-serif;
+            color: white;
+            pointer-events: none;
+        }
+        .stat-item {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 14px;
+            text-shadow: 1px 1px 2px black;
+            margin-bottom: 4px;
+        }
+        .stat-icon { width: 20px; text-align: center; font-size: 16px; }
 
-            /* Compact HUD for Mobile */
-            #score, #coinsDisplay, #levelDisplay {
-                font-size: 14px !important;
-            }
-            /* Force HUD elements to single line if possible */
-            .hud-container, .stats-bar {
-                display: flex !important;
-                flex-wrap: wrap !important;
-                gap: 10px !important;
-            }
+        #evo-container {
+            position: fixed;
+            z-index: 900;
+            background: rgba(0,0,0,0.5);
+            border: 2px solid rgba(255,255,255,0.2);
+            border-radius: 12px;
+            overflow: hidden;
+            pointer-events: none;
+        }
 
-            /* Responsive Grids for Pets/Shop */
-            #pet-items, #shop-items, #slayer-shop-items, #rebirth-items {
-                grid-template-columns: repeat(auto-fill, minmax(90px, 1fr)) !important;
-                gap: 8px !important;
-            }
-            .pet-slot, .shop-item {
-                min-height: auto !important;
-            }
-            button {
-                min-height: 44px; /* Touch friendly */
-            }
-            
-            /* Virtual Joystick */
-            #virtual-joystick-zone {
-                position: fixed;
-                bottom: 20px;
+        /* --- PC Layout (Sidebar) --- */
+        @media (min-width: 769px) {
+            #game-stats-container {
+                top: 50px; /* Below FPS counter */
                 left: 20px;
-                width: 100px;
-                height: 100px;
-                background: rgba(255, 255, 255, 0.05);
-                border: 2px solid rgba(255, 255, 255, 0.15);
-                border-radius: 50%;
-                z-index: 9999;
-                touch-action: none;
                 display: flex;
-                align-items: center;
-                justify-content: center;
-                backdrop-filter: blur(2px);
+                flex-direction: column;
+                min-width: 160px;
             }
-            #virtual-joystick-knob {
-                width: 50px;
-                height: 50px;
-                background: rgba(0, 255, 255, 0.5);
-                border-radius: 50%;
-                box-shadow: 0 0 15px rgba(0, 255, 255, 0.3);
-                pointer-events: none;
-                transform: translate(0, 0);
-            }
-
-            /* Boost Button */
-            #mobile-boost-btn {
-                position: fixed;
-                bottom: 50px;
-                right: 30px;
-                width: 80px;
-                height: 80px;
-                background: rgba(255, 50, 50, 0.4);
-                border: 2px solid rgba(255, 50, 50, 0.6);
-                border-radius: 50%;
-                color: white;
-                font-weight: bold;
-                font-family: sans-serif;
-                display: flex;
-                align-items: center;
-                justify-content: center;
-                z-index: 9999;
-                touch-action: none;
-                user-select: none;
-                backdrop-filter: blur(2px);
-                font-size: 24px;
-            }
-            #mobile-boost-btn:active {
-                background: rgba(255, 50, 50, 0.8);
-                transform: scale(0.95);
-            }
-
-            /* Fullscreen Button */
-            #mobile-fs-btn {
-                position: fixed;
-                top: 10px;
+            #evo-container {
+                bottom: 20px;
                 left: 50%;
                 transform: translateX(-50%);
-                background: rgba(0, 0, 0, 0.5);
-                border: 1px solid rgba(255, 255, 255, 0.3);
-                color: #fff;
-                padding: 6px 16px;
-                border-radius: 20px;
-                z-index: 10000;
-                font-size: 12px;
-                pointer-events: auto;
-                backdrop-filter: blur(4px);
+                width: 400px;
+                height: 24px;
+            }
+        }
+
+        /* --- Mobile Layout (Top Bar & Fixes) --- */
+        @media (max-width: 768px) {
+            #game-stats-container {
+                top: 0; left: 0; width: 100%;
+                display: flex; flex-wrap: wrap; justify-content: center; gap: 12px;
+                border-radius: 0; border: none; border-bottom: 1px solid rgba(255,255,255,0.1);
+                padding: 4px;
+            }
+            .stat-item { font-size: 12px; margin-bottom: 0; }
+            
+            #evo-container {
+                bottom: 60px; left: 50%; transform: translateX(-50%);
+                width: 90%; height: 16px;
             }
 
-            /* Prevent Zoom/Scroll/Selection */
-            body {
-                overflow: hidden;
-                touch-action: none;
-                -webkit-user-select: none;
-                user-select: none;
-                -webkit-touch-callout: none;
+            /* Mobile Fixes */
+            #minimapCanvas { display: none !important; }
+            
+            /* Scrollable Overlays */
+            #pet-items, #shop-items, #slayer-shop-items, #rebirth-items, #guide-items {
+                max-height: 60vh;
+                overflow-y: auto;
+                -webkit-overflow-scrolling: touch;
+            }
+            .overlay-content {
+                max-height: 90vh;
+                display: flex; flex-direction: column;
+            }
+            
+            /* Virtual Joystick Styles */
+            #virtual-joystick-zone {
+                position: fixed; bottom: 30px; left: 30px; width: 120px; height: 120px;
+                background: rgba(255, 255, 255, 0.05); border: 2px solid rgba(255, 255, 255, 0.15);
+                border-radius: 50%; z-index: 9999; touch-action: none;
+                display: flex; align-items: center; justifyContent: center; backdrop-filter: blur(2px);
+            }
+            #virtual-joystick-knob {
+                width: 50px; height: 50px; background: rgba(0, 255, 255, 0.5);
+                border-radius: 50%; pointer-events: none;
+            }
+            #mobile-boost-btn {
+                position: fixed; bottom: 50px; right: 30px; width: 80px; height: 80px;
+                background: rgba(255, 50, 50, 0.4); border: 2px solid rgba(255, 50, 50, 0.6);
+                border-radius: 50%; color: white; font-weight: bold; display: flex;
+                align-items: center; justify-content: center; z-index: 9999; font-size: 24px;
             }
         }
     `;
     document.head.appendChild(style);
 
-    // Create Elements
-    const joystick = document.createElement('div');
-    joystick.id = 'virtual-joystick-zone';
-    const knob = document.createElement('div');
-    knob.id = 'virtual-joystick-knob';
-    joystick.appendChild(knob);
-    document.body.appendChild(joystick);
+    // 2. Restructure Stats (Move to Sidebar/Topbar)
+    let statsContainer = document.getElementById('game-stats-container');
+    if (!statsContainer) {
+        statsContainer = document.createElement('div');
+        statsContainer.id = 'game-stats-container';
+        document.body.appendChild(statsContainer);
 
-    const boostBtn = document.createElement('div');
-    boostBtn.id = 'mobile-boost-btn';
-    boostBtn.innerText = '⚡';
-    document.body.appendChild(boostBtn);
+        const stats = [
+            { id: 'score', icon: '🏆' },
+            { id: 'levelDisplay', icon: '⭐' },
+            { id: 'highScore', icon: '👑' },
+            { id: 'coinsDisplay', icon: '💰' },
+            { id: 'rpDisplay', icon: '🌀' },
+            { id: 'soulsDisplay', icon: '👻' }
+        ];
 
-    const fsBtn = document.createElement('button');
-    fsBtn.id = 'mobile-fs-btn';
-    fsBtn.innerText = '⛶ Fullscreen';
-    fsBtn.onclick = () => {
-        if (!document.fullscreenElement) {
-            document.documentElement.requestFullscreen().catch(err => console.log(err));
-        } else {
-            document.exitFullscreen();
-        }
-    };
-    document.body.appendChild(fsBtn);
+        stats.forEach(s => {
+            const el = document.getElementById(s.id);
+            if (el) {
+                const wrapper = document.createElement('div');
+                wrapper.className = 'stat-item';
+                wrapper.innerHTML = `<span class="stat-icon">${s.icon}</span>`;
+                wrapper.appendChild(el); // Move element
+                statsContainer.appendChild(wrapper);
+            }
+        });
+    }
 
-    // Joystick Logic
-    let startX, startY;
-    const maxRadius = 35;
+    // 3. Restructure Evolution Bar
+    let evoContainer = document.getElementById('evo-container');
+    if (!evoContainer) {
+        evoContainer = document.createElement('div');
+        evoContainer.id = 'evo-container';
+        document.body.appendChild(evoContainer);
 
-    joystick.addEventListener('touchstart', (e) => {
-        e.preventDefault();
-        const touch = e.changedTouches[0];
-        const rect = joystick.getBoundingClientRect();
-        startX = rect.left + rect.width / 2;
-        startY = rect.top + rect.height / 2;
-        updateJoystick(touch.clientX, touch.clientY);
-    }, { passive: false });
-
-    joystick.addEventListener('touchmove', (e) => {
-        e.preventDefault();
-        const touch = e.changedTouches[0];
-        updateJoystick(touch.clientX, touch.clientY);
-    }, { passive: false });
-
-    joystick.addEventListener('touchend', (e) => {
-        e.preventDefault();
-        knob.style.transform = `translate(0px, 0px)`;
-    }, { passive: false });
-
-    function updateJoystick(clientX, clientY) {
-        let dx = clientX - startX;
-        let dy = clientY - startY;
-        const distance = Math.sqrt(dx*dx + dy*dy);
-        
-        if (distance > maxRadius) {
-            const ratio = maxRadius / distance;
-            dx *= ratio;
-            dy *= ratio;
-        }
-        
-        knob.style.transform = `translate(${dx}px, ${dy}px)`;
-
-        if (Math.abs(dx) > Math.abs(dy)) {
-            if (dx > 10 && velocity.x !== -1) nextVelocity = { x: 1, y: 0 };
-            else if (dx < -10 && velocity.x !== 1) nextVelocity = { x: -1, y: 0 };
-        } else {
-            if (dy > 10 && velocity.y !== -1) nextVelocity = { x: 0, y: 1 };
-            else if (dy < -10 && velocity.y !== 1) nextVelocity = { x: 0, y: -1 };
+        const fill = document.getElementById('progressFill');
+        const text = document.getElementById('progressText');
+        if (fill) { fill.style.height = '100%'; evoContainer.appendChild(fill); }
+        if (text) {
+            Object.assign(text.style, {
+                position: 'absolute', width: '100%', textAlign: 'center', top: '50%',
+                transform: 'translateY(-50%)', color: '#fff', fontSize: '12px',
+                fontWeight: 'bold', textShadow: '1px 1px 2px black'
+            });
+            evoContainer.appendChild(text);
         }
     }
 
-    // Boost Logic
-    boostBtn.addEventListener('touchstart', (e) => {
+    // 4. Mobile Controls (Only if Mobile)
+    const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent) || window.innerWidth < 800;
+    if (isMobile && !document.getElementById('mobile-controls-container')) {
+        injectMobileControls();
+    }
+}
+
+function injectMobileControls() {
+    // حاوية التحكم الكاملة
+    const container = document.createElement('div');
+    container.id = 'mobile-controls-container';
+    Object.assign(container.style, {
+        position: 'fixed', top: '0', left: '0', width: '100%', height: '100%',
+        zIndex: '9999', pointerEvents: 'none'
+    });
+    document.body.appendChild(container);
+
+    // منطقة الحركة (النصف الأيسر من الشاشة)
+    const moveZone = document.createElement('div');
+    Object.assign(moveZone.style, {
+        position: 'absolute', top: '0', left: '0', width: '50%', height: '100%',
+        pointerEvents: 'auto', touchAction: 'none'
+    });
+    container.appendChild(moveZone);
+
+    // عناصر الجويستيك (مخفية في البداية)
+    const joyBase = document.createElement('div');
+    Object.assign(joyBase.style, {
+        position: 'absolute', width: '100px', height: '100px',
+        borderRadius: '50%', background: 'rgba(255, 255, 255, 0.1)',
+        border: '2px solid rgba(255, 255, 255, 0.2)',
+        display: 'none', transform: 'translate(-50%, -50%)', pointerEvents: 'none'
+    });
+    container.appendChild(joyBase);
+
+    const joyKnob = document.createElement('div');
+    Object.assign(joyKnob.style, {
+        position: 'absolute', width: '50px', height: '50px',
+        borderRadius: '50%', background: 'rgba(0, 255, 255, 0.5)',
+        boxShadow: '0 0 15px rgba(0, 255, 255, 0.4)',
+        display: 'none', transform: 'translate(-50%, -50%)', pointerEvents: 'none'
+    });
+    container.appendChild(joyKnob);
+
+    // زر السرعة (النصف الأيمن - زر ثابت)
+    const sprintBtn = document.createElement('div');
+    Object.assign(sprintBtn.style, {
+        position: 'absolute', bottom: '60px', right: '40px', width: '90px', height: '90px',
+        background: 'rgba(255, 50, 50, 0.3)', border: '3px solid rgba(255, 50, 50, 0.5)',
+        borderRadius: '50%', color: 'white', display: 'flex', alignItems: 'center',
+        justifyContent: 'center', fontSize: '32px', pointerEvents: 'auto',
+        touchAction: 'none', backdropFilter: 'blur(4px)', userSelect: 'none'
+    });
+    sprintBtn.innerHTML = '⚡';
+    container.appendChild(sprintBtn);
+
+    // منطق الجويستيك
+    let joyStartX = 0, joyStartY = 0;
+    let joyActive = false;
+    let joyId = null;
+    const maxDist = 40;
+
+    moveZone.addEventListener('touchstart', (e) => {
+        e.preventDefault();
+        const touch = e.changedTouches[0];
+        joyId = touch.identifier;
+        joyStartX = touch.clientX;
+        joyStartY = touch.clientY;
+        joyActive = true;
+
+        // إظهار الجويستيك مكان اللمس
+        joyBase.style.display = 'block';
+        joyKnob.style.display = 'block';
+        joyBase.style.left = joyStartX + 'px';
+        joyBase.style.top = joyStartY + 'px';
+        joyKnob.style.left = joyStartX + 'px';
+        joyKnob.style.top = joyStartY + 'px';
+        joyKnob.style.transform = `translate(-50%, -50%)`;
+    }, { passive: false });
+
+    moveZone.addEventListener('touchmove', (e) => {
+        e.preventDefault();
+        if (!joyActive) return;
+        
+        let touch = null;
+        for (let i = 0; i < e.changedTouches.length; i++) {
+            if (e.changedTouches[i].identifier === joyId) {
+                touch = e.changedTouches[i];
+                break;
+            }
+        }
+        if (!touch) return;
+
+        let dx = touch.clientX - joyStartX;
+        let dy = touch.clientY - joyStartY;
+        const dist = Math.sqrt(dx*dx + dy*dy);
+        
+        // تقييد حركة المقبض داخل الدائرة
+        let visualDx = dx;
+        let visualDy = dy;
+        if (dist > maxDist) {
+            const ratio = maxDist / dist;
+            visualDx *= ratio;
+            visualDy *= ratio;
+        }
+        
+        joyKnob.style.transform = `translate(calc(-50% + ${visualDx}px), calc(-50% + ${visualDy}px))`;
+
+        // تحديد الاتجاه (مع عتبة بسيطة لمنع الاهتزاز)
+        if (dist > 10) {
+            if (Math.abs(dx) > Math.abs(dy)) {
+                if (dx > 0 && velocity.x !== -1) nextVelocity = { x: 1, y: 0 };
+                else if (dx < 0 && velocity.x !== 1) nextVelocity = { x: -1, y: 0 };
+            } else {
+                if (dy > 0 && velocity.y !== -1) nextVelocity = { x: 0, y: 1 };
+                else if (dy < 0 && velocity.y !== 1) nextVelocity = { x: 0, y: -1 };
+            }
+        }
+    }, { passive: false });
+
+    const resetJoystick = (e) => {
+        e.preventDefault();
+        let touch = null;
+        for (let i = 0; i < e.changedTouches.length; i++) {
+            if (e.changedTouches[i].identifier === joyId) {
+                touch = e.changedTouches[i];
+                break;
+            }
+        }
+        if (!touch) return;
+
+        joyActive = false;
+        joyId = null;
+        joyBase.style.display = 'none';
+        joyKnob.style.display = 'none';
+    };
+
+    moveZone.addEventListener('touchend', resetJoystick, { passive: false });
+    moveZone.addEventListener('touchcancel', resetJoystick, { passive: false });
+
+    // منطق زر السرعة
+    sprintBtn.addEventListener('touchstart', (e) => {
         e.preventDefault();
         isSprinting = true;
+        sprintBtn.style.background = 'rgba(255, 50, 50, 0.6)';
+        sprintBtn.style.transform = 'scale(0.9)';
     }, { passive: false });
 
-    boostBtn.addEventListener('touchend', (e) => {
+    sprintBtn.addEventListener('touchend', (e) => {
         e.preventDefault();
         isSprinting = false;
+        sprintBtn.style.background = 'rgba(255, 50, 50, 0.3)';
+        sprintBtn.style.transform = 'scale(1)';
     }, { passive: false });
-
-    // Prevent default gestures
-    document.addEventListener('gesturestart', (e) => e.preventDefault());
-    document.addEventListener('dblclick', (e) => e.preventDefault());
 }
 
 window.setLanguage = setLanguage;
@@ -623,4 +728,4 @@ window.cycleBrightness = cycleBrightness;
 window.showSaveIndicator = showSaveIndicator;
 window.showNotification = showNotification;
 window.showConfirmation = showConfirmation;
-window.setupMobileUI = setupMobileUI;
+window.setupResponsiveUI = setupResponsiveUI;
