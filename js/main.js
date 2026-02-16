@@ -115,8 +115,13 @@ document.addEventListener('DOMContentLoaded', () => {
     // Dynamic Scaling for Mobile
     function resizeGame() {
         if (canvas) {
-            canvas.width = window.innerWidth;
-            canvas.height = window.innerHeight;
+            // JS Resize Function: حساب الدقة الداخلية لضمان رؤية كاملة
+            // نستخدم عرض منطقي لا يقل عن 1280 بكسل لضمان عدم تكبير اللعبة بشكل مبالغ فيه
+            const minLogicalWidth = 1280; 
+            const targetWidth = Math.max(window.innerWidth, minLogicalWidth);
+            
+            canvas.width = targetWidth;
+            canvas.height = targetWidth / (window.innerWidth / window.innerHeight);
         }
     }
     window.addEventListener('resize', resizeGame);

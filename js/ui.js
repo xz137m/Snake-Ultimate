@@ -422,7 +422,12 @@ function setupResponsiveUI() {
             position: fixed; /* Prevents iOS scroll bounce */
             background: #000;
         }
-        canvas { display: block; }
+        canvas { 
+            display: block;
+            width: 100%; height: 100%;
+            max-width: 100vw; max-height: 100vh;
+            object-fit: contain;
+        }
 
         /* --- Shared Styles --- */
         #game-stats-container {
@@ -517,20 +522,20 @@ function setupResponsiveUI() {
             /* Virtual Joystick Styles */
             #virtual-joystick-zone {
                 position: fixed; 
-                bottom: calc(30px + env(safe-area-inset-bottom, 0px)); 
-                left: 30px; width: 120px; height: 120px;
+                bottom: calc(5vh + env(safe-area-inset-bottom, 0px)); 
+                left: 5vw; width: 18vmin; height: 18vmin;
                 background: rgba(255, 255, 255, 0.05); border: 2px solid rgba(255, 255, 255, 0.15);
                 border-radius: 50%; z-index: 9999; touch-action: none;
                 display: flex; align-items: center; justifyContent: center; backdrop-filter: blur(2px);
             }
             #virtual-joystick-knob {
-                width: 50px; height: 50px; background: rgba(0, 255, 255, 0.5);
+                width: 40%; height: 40%; background: rgba(0, 255, 255, 0.5);
                 border-radius: 50%; pointer-events: none;
             }
             #mobile-boost-btn {
                 position: fixed; 
-                bottom: calc(50px + env(safe-area-inset-bottom, 0px)); 
-                right: 30px; width: 80px; height: 80px;
+                bottom: calc(8vh + env(safe-area-inset-bottom, 0px)); 
+                right: 5vw; width: 12vmin; height: 12vmin;
                 background: rgba(255, 50, 50, 0.4); border: 2px solid rgba(255, 50, 50, 0.6);
                 border-radius: 50%; color: white; font-weight: bold; display: flex;
                 align-items: center; justify-content: center; z-index: 9999; font-size: 24px;
@@ -620,6 +625,7 @@ function injectMobileControls() {
 
     // عناصر الجويستيك (مخفية في البداية)
     const joyBase = document.createElement('div');
+    joyBase.id = 'virtual-joystick-zone'; // ربط بالـ CSS
     Object.assign(joyBase.style, {
         position: 'absolute', width: '100px', height: '100px',
         borderRadius: '50%', background: 'rgba(255, 255, 255, 0.1)',
@@ -629,6 +635,7 @@ function injectMobileControls() {
     container.appendChild(joyBase);
 
     const joyKnob = document.createElement('div');
+    joyKnob.id = 'virtual-joystick-knob'; // ربط بالـ CSS
     Object.assign(joyKnob.style, {
         position: 'absolute', width: '50px', height: '50px',
         borderRadius: '50%', background: 'rgba(0, 255, 255, 0.5)',
@@ -639,6 +646,7 @@ function injectMobileControls() {
 
     // زر السرعة (النصف الأيمن - زر ثابت)
     const sprintBtn = document.createElement('div');
+    sprintBtn.id = 'mobile-boost-btn'; // ربط بالـ CSS
     Object.assign(sprintBtn.style, {
         position: 'absolute', bottom: '60px', right: '40px', width: '90px', height: '90px',
         background: 'rgba(255, 50, 50, 0.3)', border: '3px solid rgba(255, 50, 50, 0.5)',
