@@ -46,22 +46,29 @@ function renderGuideItems() {
     container.appendChild(createMenuBtn("💀 " + t.tabAuras, 'linear-gradient(45deg, #6200ea, #d500f9)', renderGuideAuras));
 }
 
-function renderGuideProgression() {
+function setupGuidePage(grid = false) {
     const container = document.getElementById('guide-items');
     container.innerHTML = '';
-    container.style.display = 'block';
+    container.style.display = grid ? 'grid' : 'block';
+    if (grid) {
+        container.style.gridTemplateColumns = 'repeat(auto-fill, minmax(250px, 1fr))';
+        container.style.gap = '15px';
+    }
     const t = TRANSLATIONS[currentLanguage];
-    
-    // Back Button
     const backBtn = document.createElement('button');
     backBtn.innerText = t.back;
     backBtn.style.background = '#444';
-    backBtn.style.width = '100%';
+    backBtn.style.width = grid ? 'auto' : '100%';
+    if (grid) backBtn.style.gridColumn = '1 / -1';
     backBtn.style.padding = '15px';
-    backBtn.style.marginBottom = '20px';
     backBtn.onclick = renderGuideItems;
     container.appendChild(backBtn);
+    return container;
+}
 
+function renderGuideProgression() {
+    const container = setupGuidePage(false);
+    const t = TRANSLATIONS[currentLanguage];
     let prestigeMult = Math.pow(2, prestigeLevel);
     let levelMult = Math.pow(1.5, playerLevel - 1);
     let permGoldMult = (1 + (prestigeUpgrades.permGold1 || 0) * 0.5) * (1 + (prestigeUpgrades.permGold2 || 0) * 4.0);
@@ -85,21 +92,8 @@ function renderGuideProgression() {
 }
 
 function renderGuideCaps() {
-    const container = document.getElementById('guide-items');
-    container.innerHTML = '';
-    container.style.display = 'grid';
-    container.style.gridTemplateColumns = 'repeat(auto-fill, minmax(250px, 1fr))';
-    container.style.gap = '15px';
-
+    const container = setupGuidePage(true);
     const t = TRANSLATIONS[currentLanguage];
-    
-    const backBtn = document.createElement('button');
-    backBtn.innerText = t.back;
-    backBtn.style.background = '#444';
-    backBtn.style.gridColumn = '1 / -1';
-    backBtn.style.padding = '15px';
-    backBtn.onclick = renderGuideItems;
-    container.appendChild(backBtn);
 
     LEVEL_CAPS.forEach(tier => {
         const div = document.createElement('div');
@@ -123,21 +117,8 @@ function renderGuideCaps() {
 }
 
 function renderGuideFruits() {
-    const container = document.getElementById('guide-items');
-    container.innerHTML = '';
-    container.style.display = 'grid';
-    container.style.gridTemplateColumns = 'repeat(auto-fill, minmax(250px, 1fr))';
-    container.style.gap = '15px';
-
+    const container = setupGuidePage(true);
     const t = TRANSLATIONS[currentLanguage];
-    
-    const backBtn = document.createElement('button');
-    backBtn.innerText = t.back;
-    backBtn.style.background = '#444';
-    backBtn.style.gridColumn = '1 / -1';
-    backBtn.style.padding = '15px';
-    backBtn.onclick = renderGuideItems;
-    container.appendChild(backBtn);
 
     const unlockedIndices = [];
     for(let i=0; i<FRUIT_TYPES.length; i++) {
@@ -180,30 +161,17 @@ function renderGuideFruits() {
         div.innerHTML = `
             <h3 style="color: ${fruit.color}"> ${!isUnlocked ? t.locked : ''}</h3>
             <div style="width: 20px; height: 20px; background: ${fruit.color}; border-radius: 50%; margin: 10px auto; box-shadow: 0 0 10px ${fruit.glow}"></div>
-            <p style="color: ; font-weight: bold; margin-top: 5px; border-top: 1px solid rgba(255,255,255,0.1); padding-top: 5px;">Spawn: </p>
-            <p>Base Score: ${formatNumber(fruit.points)}</p>
-            <p>Base Gold: ${formatNumber(fruit.gold)}</p>
+            <p style="color: ; font-weight: bold; margin-top: 5px; border-top: 1px solid rgba(255,255,255,0.1); padding-top: 5px;">${t.spawnChance} <span style="color: ${chanceColor}">${chanceText}</span></p>
+            <p>${t.baseScore} ${formatNumber(fruit.points)}</p>
+            <p>${t.baseGold} ${formatNumber(fruit.gold)}</p>
         `;
         container.appendChild(div);
     });
 }
 
 function renderGuideEvolutions() {
-    const container = document.getElementById('guide-items');
-    container.innerHTML = '';
-    container.style.display = 'grid';
-    container.style.gridTemplateColumns = 'repeat(auto-fill, minmax(250px, 1fr))';
-    container.style.gap = '15px';
-
+    const container = setupGuidePage(true);
     const t = TRANSLATIONS[currentLanguage];
-    
-    const backBtn = document.createElement('button');
-    backBtn.innerText = t.back;
-    backBtn.style.background = '#444';
-    backBtn.style.gridColumn = '1 / -1';
-    backBtn.style.padding = '15px';
-    backBtn.onclick = renderGuideItems;
-    container.appendChild(backBtn);
 
     PRESTIGE_COLORS.forEach((snakeType, index) => {
         let isUnlocked = playerLevel >= snakeType.reqLevel;
@@ -224,21 +192,8 @@ function renderGuideEvolutions() {
 }
 
 function renderGuideAuras() {
-    const container = document.getElementById('guide-items');
-    container.innerHTML = '';
-    container.style.display = 'grid';
-    container.style.gridTemplateColumns = 'repeat(auto-fill, minmax(250px, 1fr))';
-    container.style.gap = '15px';
-
+    const container = setupGuidePage(true);
     const t = TRANSLATIONS[currentLanguage];
-    
-    const backBtn = document.createElement('button');
-    backBtn.innerText = t.back;
-    backBtn.style.background = '#444';
-    backBtn.style.gridColumn = '1 / -1';
-    backBtn.style.padding = '15px';
-    backBtn.onclick = renderGuideItems;
-    container.appendChild(backBtn);
 
     const auras = [
         { kills: 5, color: '#ffffff', name: 'Faint Aura' },
@@ -265,31 +220,22 @@ function renderGuideAuras() {
 }
 
 function renderGuidePets() {
-    const container = document.getElementById('guide-items');
-    container.innerHTML = '';
-    container.style.display = 'grid';
-    container.style.gridTemplateColumns = 'repeat(auto-fill, minmax(250px, 1fr))';
-    container.style.gap = '15px';
-
+    const container = setupGuidePage(true);
     const t = TRANSLATIONS[currentLanguage];
-    
-    const backBtn = document.createElement('button');
-    backBtn.innerText = t.back;
-    backBtn.style.background = '#444';
-    backBtn.style.gridColumn = '1 / -1';
-    backBtn.style.padding = '15px';
-    backBtn.onclick = renderGuideItems;
-    container.appendChild(backBtn);
 
     PET_TYPES.forEach(pet => {
+        const name = currentLanguage === 'ar' ? pet.nameAr : pet.name;
+        const rarity = currentLanguage === 'ar' ? pet.rarityAr : pet.rarity;
+        const desc = currentLanguage === 'ar' ? pet.descAr : pet.desc;
+
         const div = document.createElement('div');
         div.className = 'shop-item';
         div.style.borderColor = pet.color;
         div.innerHTML = `
-            <h3 style="color: ${pet.color}">${pet.name}</h3>
-            <p style="color: #ccc">${pet.rarity}</p>
-            <p>${pet.desc}</p>
-            <p>Speed: ${pet.speed} | Intel: ${pet.intel}</p>
+            <h3 style="color: ${pet.color}">${name}</h3>
+            <p style="color: #ccc">${rarity}</p>
+            <p>${desc}</p>
+            <p>${t.speed} ${pet.speed} | ${t.intel} ${pet.intel}</p>
         `;
         container.appendChild(div);
     });

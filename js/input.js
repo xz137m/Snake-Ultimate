@@ -71,17 +71,4 @@ window.addEventListener('keyup', (e) => {
     if (e.key === 'Shift') isSprinting = false;
 });
 
-// Touch Events (Mobile)
-document.addEventListener('touchstart', (e) => {
-    touchStartX = e.changedTouches[0].screenX;
-    touchStartY = e.changedTouches[0].screenY;
-}, { passive: false });
-
-document.addEventListener('touchend', (e) => {
-    const touchEndX = e.changedTouches[0].screenX;
-    const touchEndY = e.changedTouches[0].screenY;
-    handleSwipe(touchStartX, touchStartY, touchEndX, touchEndY);
-}, { passive: false });
-
-// Prevent default touch scrolling to ensure smooth gameplay
-document.body.addEventListener('touchmove', (e) => e.preventDefault(), { passive: false });
+// Note: Touch events are handled by the Joystick system in main.js to prevent conflicts.

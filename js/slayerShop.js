@@ -1,3 +1,18 @@
+const SLAYER_DATA = {
+    maxHearts: { base: 100, scale: 1.5, max: 5 },
+    maxStamina: { base: 50, scale: 1.5, max: 10 },
+    staminaRegen: { base: 75, scale: 1.5, max: 10 },
+    gold1: { base: 200, scale: 1.5, max: 50 },
+    gold2: { base: 1000, scale: 1.5, max: 50 },
+    rp1: { base: 500, scale: 1.5, max: 50 },
+    rp2: { base: 2500, scale: 1.5, max: 50 },
+    souls1: { base: 300, scale: 1.5, max: 50 },
+    souls2: { base: 1500, scale: 1.5, max: 50 },
+    infiniteStamina: { base: 50000, scale: 1, max: 1 }
+};
+
+const getSlayerCost = (id, lvl) => Math.floor(SLAYER_DATA[id].base * Math.pow(SLAYER_DATA[id].scale, lvl));
+
 function openSlayerShop() {
     // تحديث البيانات أولاً لتجنب ظهور Undefined
     renderSlayerShopItems();
@@ -14,88 +29,14 @@ function renderSlayerShopItems() {
     
     document.getElementById('slayerSoulsDisplay').innerText = window.formatNumber(window.souls || 0);
 
-    const items = [
-        { 
-            id: 'maxHearts', 
-            name: t.heartUpgrade, 
-            desc: t.heartUpgradeDesc, 
-            level: slayerUpgrades.maxHearts, 
-            maxLevel: 5, 
-            cost: Math.floor(100 * Math.pow(1.5, slayerUpgrades.maxHearts)) 
-        },
-        { 
-            id: 'maxStamina', 
-            name: t.staminaUpgrade, 
-            desc: t.staminaUpgradeDesc, 
-            level: slayerUpgrades.maxStamina, 
-            maxLevel: 10, 
-            cost: Math.floor(50 * Math.pow(1.5, slayerUpgrades.maxStamina)) 
-        },
-        { 
-            id: 'staminaRegen', 
-            name: t.regenUpgrade, 
-            desc: t.regenUpgradeDesc, 
-            level: slayerUpgrades.staminaRegen, 
-            maxLevel: 10, 
-            cost: Math.floor(75 * Math.pow(1.5, slayerUpgrades.staminaRegen)) 
-        },
-        { 
-            id: 'gold1', 
-            name: t.slayerGold1, 
-            desc: t.slayerGold1Desc, 
-            level: slayerUpgrades.gold1, 
-            maxLevel: 50, 
-            cost: Math.floor(200 * Math.pow(1.5, slayerUpgrades.gold1)) 
-        },
-        { 
-            id: 'gold2', 
-            name: t.slayerGold2, 
-            desc: t.slayerGold2Desc, 
-            level: slayerUpgrades.gold2, 
-            maxLevel: 50, 
-            cost: Math.floor(1000 * Math.pow(1.5, slayerUpgrades.gold2)) 
-        },
-        { 
-            id: 'rp1', 
-            name: t.slayerRP1, 
-            desc: t.slayerRP1Desc, 
-            level: slayerUpgrades.rp1, 
-            maxLevel: 50, 
-            cost: Math.floor(500 * Math.pow(1.5, slayerUpgrades.rp1)) 
-        },
-        { 
-            id: 'rp2', 
-            name: t.slayerRP2, 
-            desc: t.slayerRP2Desc, 
-            level: slayerUpgrades.rp2, 
-            maxLevel: 50, 
-            cost: Math.floor(2500 * Math.pow(1.5, slayerUpgrades.rp2)) 
-        },
-        { 
-            id: 'souls1', 
-            name: t.slayerSouls1, 
-            desc: t.slayerSouls1Desc, 
-            level: slayerUpgrades.souls1, 
-            maxLevel: 50, 
-            cost: Math.floor(300 * Math.pow(1.5, slayerUpgrades.souls1)) 
-        },
-        { 
-            id: 'souls2', 
-            name: t.slayerSouls2, 
-            desc: t.slayerSouls2Desc, 
-            level: slayerUpgrades.souls2, 
-            maxLevel: 50, 
-            cost: Math.floor(1500 * Math.pow(1.5, slayerUpgrades.souls2)) 
-        },
-        { 
-            id: 'infiniteStamina', 
-            name: t.infiniteStamina, 
-            desc: t.infiniteStaminaDesc, 
-            level: slayerUpgrades.infiniteStamina, 
-            maxLevel: 1, 
-            cost: 50000 // تكلفة عالية لأنها تطويرة قوية جداً
-        }
-    ];
+    const items = Object.keys(SLAYER_DATA).map(key => ({
+        id: key,
+        name: t[key === 'maxHearts' ? 'heartUpgrade' : key === 'maxStamina' ? 'staminaUpgrade' : key === 'staminaRegen' ? 'regenUpgrade' : key === 'infiniteStamina' ? 'infiniteStamina' : 'slayer' + key.charAt(0).toUpperCase() + key.slice(1)],
+        desc: t[key === 'maxHearts' ? 'heartUpgradeDesc' : key === 'maxStamina' ? 'staminaUpgradeDesc' : key === 'staminaRegen' ? 'regenUpgradeDesc' : key === 'infiniteStamina' ? 'infiniteStaminaDesc' : 'slayer' + key.charAt(0).toUpperCase() + key.slice(1) + 'Desc'],
+        level: slayerUpgrades[key] || 0,
+        maxLevel: SLAYER_DATA[key].max,
+        cost: getSlayerCost(key, slayerUpgrades[key] || 0)
+    }));
 
     items.forEach(item => {
         const getBonus = (id, lvl) => {
@@ -108,7 +49,7 @@ function renderSlayerShopItems() {
             if (id === 'rp2') return `+${lvl * 10}%`;
             if (id === 'souls1') return `+${lvl * 5}%`;
             if (id === 'souls2') return `+${lvl * 10}%`;
-            if (id === 'infiniteStamina') return lvl > 0 ? "✅ ACTIVE" : "❌ INACTIVE";
+            if (id === 'infiniteStamina') return lvl > 0 ? t.active : t.inactive;
             return '';
         };
 
@@ -128,7 +69,7 @@ function renderSlayerShopItems() {
         let lockMsg = "";
         if (item.id === 'infiniteStamina' && slayerUpgrades.maxStamina < 10) {
             isLocked = true;
-            lockMsg = ` (${t.req} Max Stamina Lvl 10)`;
+            lockMsg = ` (${t.req} ${t.maxStaminaReq})`;
         }
 
         div.style.borderColor = '#ff3333'; // Red theme for slayer
@@ -149,15 +90,7 @@ function renderSlayerShopItems() {
     });
 }
 
-const SLAYER_LIMITS = {
-    maxHearts: 5,
-    maxStamina: 10,
-    staminaRegen: 10,
-    gold1: 50, gold2: 50,
-    rp1: 50, rp2: 50,
-    souls1: 50, souls2: 50,
-    infiniteStamina: 1
-};
+const SLAYER_LIMITS = Object.fromEntries(Object.entries(SLAYER_DATA).map(([k, v]) => [k, v.max]));
 
 window.buySlayerUpgrade = function(id, cost) {
     let maxLvl = SLAYER_LIMITS[id] || 50;
@@ -178,7 +111,7 @@ window.buySlayerUpgrade = function(id, cost) {
         updateScore(); // Update UI
         renderSlayerShopItems();
         playSound('eat');
-        showNotification(`⚔️ Slayer Upgrade Unlocked!`, 'success');
+        showNotification(TRANSLATIONS[currentLanguage].slayerUnlocked, 'success');
     }
 };
 
@@ -187,18 +120,7 @@ window.buyMaxSlayerUpgrade = function(id) {
     let bought = 0;
     
     while (slayerUpgrades[id] < maxLvl) {
-        let cost = 0;
-        // حساب التكلفة بناءً على نوع التطوير
-        if (id === 'maxHearts') cost = Math.floor(100 * Math.pow(1.5, slayerUpgrades[id]));
-        else if (id === 'maxStamina') cost = Math.floor(50 * Math.pow(1.5, slayerUpgrades[id]));
-        else if (id === 'staminaRegen') cost = Math.floor(75 * Math.pow(1.5, slayerUpgrades[id]));
-        else if (id === 'gold1') cost = Math.floor(200 * Math.pow(1.5, slayerUpgrades[id]));
-        else if (id === 'gold2') cost = Math.floor(1000 * Math.pow(1.5, slayerUpgrades[id]));
-        else if (id === 'rp1') cost = Math.floor(500 * Math.pow(1.5, slayerUpgrades[id]));
-        else if (id === 'rp2') cost = Math.floor(2500 * Math.pow(1.5, slayerUpgrades[id]));
-        else if (id === 'souls1') cost = Math.floor(300 * Math.pow(1.5, slayerUpgrades[id]));
-        else if (id === 'souls2') cost = Math.floor(1500 * Math.pow(1.5, slayerUpgrades[id]));
-        else if (id === 'infiniteStamina') cost = 50000;
+        let cost = getSlayerCost(id, slayerUpgrades[id]);
         
         if (window.souls >= cost) {
             window.souls -= cost;
@@ -220,7 +142,7 @@ window.buyMaxSlayerUpgrade = function(id) {
         updateScore();
         renderSlayerShopItems();
         playSound('eat');
-        showNotification(`⚔️ Purchased ${bought} Upgrades!`, 'success');
+        showNotification(TRANSLATIONS[currentLanguage].purchasedUpgrades.replace('{0}', bought), 'success');
     }
 };
 

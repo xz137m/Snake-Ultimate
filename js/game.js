@@ -3,8 +3,8 @@ let timeSinceWorldUpdate = 0;
 let fpsInterval = 1000 / 144;
 let lastFrameTime = 0;
 let frameCount = 0; // Global frame counter for throttling logic
-const CHUNK_RADIUS = 65; // Expanded Active Zone (~1300px)
-const MAX_ACTIVE_FRUITS = 150; // Hard limit for performance
+const CHUNK_RADIUS = 45; // Reduced Active Zone (~900px)
+const MAX_ACTIVE_FRUITS = 80; // Reduced limit for performance
 const SPAWN_BATCH_SIZE = 5; // Max fruits to spawn per frame
 const AI_CHUNK_SIZE = 40; // Grid size for AI chunks (5-Chunk System)
 let activeChunkKeys = new Set();
@@ -140,7 +140,7 @@ const spawnFoodInChunk = () => {
         : Math.atan2(velocity.y, velocity.x) + (Math.random() - 0.5) * (Math.PI * 1.2);
 
     // Smart Distribution: Spawn in the outer ring of the chunk
-    const minSpawnDist = 40; // Outside typical viewport radius
+    const minSpawnDist = 30; // Adjusted for smaller chunk size
     const dist = minSpawnDist + Math.random() * (CHUNK_RADIUS - minSpawnDist);
     
     let fx = Math.round(head.x + Math.cos(angle) * dist);
@@ -171,13 +171,9 @@ const spawnFoodInChunk = () => {
         lastWeightUpdateLevel = playerLevel;
     }
 
-    let randomVal = Math.random() * cachedFruitWeights.total;
-    let type = cachedFruitWeights[0].i;
-    
-    for (let item of cachedFruitWeights) {
-        randomVal -= item.w;
-        if (randomVal <= 0) { type = item.i; break; }
-    }
+    const rnd = Math.random() * cachedFruitWeights.total;
+    let acc = 0;
+    const type = cachedFruitWeights.find(item => (acc += item.w) >= rnd)?.i || cachedFruitWeights[0].i;
 
     foods.push({ x: fx, y: fy, type: type });
 };
@@ -292,17 +288,13 @@ const checkFoodCollision = (head) => {
     // Optimized Range Check
     for (let i = 0; i < foods.length; i++) {
         const f = foods[i];
-        const dx = f.x - head.x;
-        const dy = f.y - head.y;
+        const distSq = getWrappedDistanceSq(head, f);
         
         // 1. Direct Hit (Fastest check)
-        if (dx === 0 && dy === 0) { eatenIndex = i; break; }
+        if (distSq === 0) { eatenIndex = i; break; }
         
         // 2. Magnet Logic (Circle-based & Throttled)
-        // Spatial Partitioning: Only check if within squared radius
-        if (range > 0 && checkMagnet) {
-            if (dx*dx + dy*dy <= rangeSq) { eatenIndex = i; break; }
-        }
+        if (range > 0 && checkMagnet && distSq <= rangeSq) { eatenIndex = i; break; }
     }
 
     if (eatenIndex !== -1) {
@@ -330,15 +322,16 @@ const processWorldUpdates = () => {
     const now = Date.now();
     const activeBosses = aiSnakes.filter(ai => ai.isBoss && !ai.isDead);
     const bossTimerEl = document.getElementById('bossTimerDisplay');
+    const t = TRANSLATIONS[currentLanguage];
     
     if (activeBosses.length > 0) {
-        bossTimerEl.innerText = "👹 BOSS FIGHT!";
+        bossTimerEl.innerText = t.bossFight;
         bossTimerEl.style.color = "#ff0000";
     } else {
         let timeLeft = Math.max(0, bossSpawnTimestamp - now);
         let mins = Math.floor(timeLeft / 60000).toString().padStart(2, '0');
         let secs = Math.floor((timeLeft % 60000) / 1000).toString().padStart(2, '0');
-        bossTimerEl.innerText = `👹 Boss: ${mins}:${secs}`;
+        bossTimerEl.innerText = `${t.bossTimer} ${mins}:${secs}`;
         bossTimerEl.style.color = "#e040fb";
 
         if (timeLeft <= 0) {
@@ -417,8 +410,9 @@ const grantKillRewards = (ai, slayerGoldMult) => {
     score += 500 * rewardMult;
     let goldGained = Math.floor(100 * rewardMult * slayerGoldMult);
     coins += goldGained;
-    createFloatingText(aiHead.x * GRID_SIZE, aiHead.y * GRID_SIZE, `+${formatNumber(goldGained)} Gold`, '#ffd700');
-    createFloatingText(aiHead.x * GRID_SIZE, aiHead.y * GRID_SIZE - 20, `+${formatNumber(50 * rewardMult)} XP`, '#00ffff');
+    const t = TRANSLATIONS[currentLanguage];
+    createFloatingText(aiHead.x * GRID_SIZE, aiHead.y * GRID_SIZE, `+${formatNumber(goldGained)} ${t.gold.replace(':', '')}`, '#ffd700');
+    createFloatingText(aiHead.x * GRID_SIZE, aiHead.y * GRID_SIZE - 20, `+${formatNumber(50 * rewardMult)} ${t.xp.replace(':', '')}`, '#00ffff');
     currentXp += 50 * rewardMult;
     updateScore();
 };
@@ -445,7 +439,8 @@ const takeDamage = () => {
 
 const updateKillCounter = () => {
     const el = document.getElementById('killCounterDisplay');
-    if (el) el.innerText = `💀 Kills: ${enemiesKilled}`;
+    const t = TRANSLATIONS[currentLanguage];
+    if (el) el.innerText = `💀 ${t.kills} ${enemiesKilled}`;
 };
 
 let lastUpdateTime = 0;
@@ -611,6 +606,7 @@ window.resetGameProgress = resetGameProgress;
 window.startGame = startGame;
 window.saveGame = saveGame;
 window.refreshPets = refreshPets;
+window.updateKillCounter = updateKillCounter;
 
 window.isPositionActive = (x, y) => {
     const cx = Math.floor(x / AI_CHUNK_SIZE);

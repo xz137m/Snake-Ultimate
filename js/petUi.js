@@ -37,7 +37,7 @@ function updatePetInventoryUI() {
     // Gacha Button
     const gachaBtn = document.getElementById('btnPullGacha');
     if (gachaBtn) {
-        gachaBtn.innerText = `Summon Pet (250k Souls)`;
+        gachaBtn.innerText = t.summonPet.replace('{0}', formatNumber(250000));
     }
 
     // Prepare Lists: Equipped (Active) vs Inventory
@@ -79,7 +79,7 @@ function updatePetInventoryUI() {
             if (i < equippedPets.length) {
                 pet = equippedPets[i];
             } else {
-                div.innerHTML = `<span style="color: rgba(0,255,136,0.5); font-size: 10px;">Active</span>`;
+                div.innerHTML = `<span style="color: rgba(0,255,136,0.5); font-size: 10px;">${t.active}</span>`;
             }
         } else {
             const invIndex = i - 2;
@@ -146,7 +146,7 @@ function pullPetGacha() {
     // Big Number Fix: Check global souls variable directly
     const cost = 250000;
     if (souls < cost) {
-        showNotification(`Not enough souls! Need ${window.formatNumber(cost)}`, "error");
+        showNotification(TRANSLATIONS[currentLanguage].notEnoughSouls.replace('{0}', window.formatNumber(cost)), "error");
         return;
     }
     souls -= cost;
@@ -169,6 +169,7 @@ function pullPetGacha() {
 }
 
 function playGachaAnimation(winningPet) {
+    const t = TRANSLATIONS[currentLanguage];
     // 1. Create Overlay
     let overlay = document.getElementById('gacha-overlay');
     if (!overlay) {
@@ -274,6 +275,9 @@ function playGachaAnimation(winningPet) {
     for (let i = 0; i < totalCards; i++) {
         let pet = (i === winnerIndex) ? winningPet : PET_TYPES[Math.floor(Math.random() * PET_TYPES.length)];
         
+        const petName = currentLanguage === 'ar' ? pet.nameAr : pet.name;
+        const petRarity = currentLanguage === 'ar' ? pet.rarityAr : pet.rarity;
+        
         const card = document.createElement('div');
         let borderColor = '#888';
         let bgGradient = 'linear-gradient(145deg, #252525, #101010)';
@@ -301,8 +305,8 @@ function playGachaAnimation(winningPet) {
                 <div style="position: absolute; top: 0; left: -150%; width: 50%; height: 100%; background: linear-gradient(to right, transparent, rgba(255,255,255,0.15), transparent); transform: skewX(-25deg); animation: card-shine 3s infinite linear;"></div>
             </div>
             <div style="width: 90px; height: 90px; border-radius: 12px; background: ${pet.color}; margin-bottom: 20px; box-shadow: 0 0 20px ${pet.color}; border: 2px solid #fff; z-index: 2;"></div>
-            <div style="color: #fff; font-weight: bold; font-size: 15px; text-align: center; text-shadow: 0 2px 4px rgba(0,0,0,0.8); z-index: 2;">${pet.name}</div>
-            <div style="color: ${borderColor}; font-size: 12px; margin-top: 5px; z-index: 2;">${pet.rarity}</div>
+            <div style="color: #fff; font-weight: bold; font-size: 15px; text-align: center; text-shadow: 0 2px 4px rgba(0,0,0,0.8); z-index: 2;">${petName}</div>
+            <div style="color: ${borderColor}; font-size: 12px; margin-top: 5px; z-index: 2;">${petRarity}</div>
         `;
         track.appendChild(card);
     }
@@ -319,7 +323,7 @@ function playGachaAnimation(winningPet) {
 
     // Skip Button
     const skipBtn = document.createElement('button');
-    skipBtn.innerText = "⏩ Skip";
+    skipBtn.innerText = t.skip;
     Object.assign(skipBtn.style, {
         position: 'absolute', top: '20px', right: '20px',
         padding: '10px 20px', background: 'rgba(0, 0, 0, 0.5)', color: '#fff',
@@ -373,7 +377,7 @@ function playGachaAnimation(winningPet) {
         createParticles(window.innerWidth / 2, window.innerHeight / 2, winningPet.color);
 
         const closeBtn = document.createElement('button');
-        closeBtn.innerText = "Collect & Close";
+        closeBtn.innerText = t.collectClose;
         Object.assign(closeBtn.style, {
             marginTop: '40px', padding: '12px 30px', fontSize: '20px',
             background: 'linear-gradient(45deg, #00c853, #64dd17)', border: 'none', borderRadius: '8px',
@@ -383,13 +387,14 @@ function playGachaAnimation(winningPet) {
         
         closeBtn.onclick = () => {
             overlay.style.display = 'none';
+            const winName = currentLanguage === 'ar' ? winningPet.nameAr : winningPet.name;
             if (!ownedPets.includes(winningPet.id)) {
                 ownedPets.push(winningPet.id);
                 localStorage.setItem('snakeOwnedPets', JSON.stringify(ownedPets));
-                showNotification(`🎉 UNLOCKED: ${winningPet.name}!`, "success");
+                showNotification(t.petUnlocked.replace('{0}', winName), "success");
             } else {
                 // Duplicate reward
-                showNotification(`Duplicate ${winningPet.name}.`, "warning");
+                showNotification(t.petDuplicate.replace('{0}', winName), "warning");
             }
             updateScore();
             updatePetInventoryUI();

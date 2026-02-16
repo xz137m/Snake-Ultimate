@@ -30,7 +30,7 @@ function performRebirth() {
 
     let earnedRP = calculateRebirthPoints();
     if (earnedRP <= 0) {
-        showNotification(`You need at least ${formatNumber(1e15)} Gold to gain Rebirth Points!`, 'warning');
+        showNotification(t.needGoldForRP.replace('{0}', formatNumber(1e15)), 'warning');
         return;
     }
 
@@ -86,7 +86,7 @@ function buyPrestigeUpgrade(id) {
         updateScore();
         renderRebirthShop();
         playSound('eat');
-        showNotification(`🌀 Prestige Upgrade Acquired!`, 'success');
+        showNotification(TRANSLATIONS[currentLanguage].prestigeUpgrade, 'success');
     }
 }
 
@@ -117,7 +117,7 @@ function buyMaxPrestigeUpgrade(id) {
         updateScore();
         renderRebirthShop();
         playSound('eat');
-        showNotification(`🌀 Max Upgrades Purchased!`, 'success');
+        showNotification(TRANSLATIONS[currentLanguage].maxUpgrades, 'success');
     }
 }
 
@@ -139,7 +139,7 @@ function renderRebirthShop() {
     reqText.id = 'rebirth-req-text';
     reqText.style.color = '#ccc';
     reqText.style.marginTop = '10px';
-    reqText.innerHTML = `Requires: Level ${requiredLevel} & <span style="color: #ffd700;">${formatNumber(requiredGold)} Gold</span>`;
+    reqText.innerHTML = t.rebirthReq.replace('{0}', requiredLevel).replace('{1}', `<span style="color: #ffd700;">${formatNumber(requiredGold)}</span>`);
     rebirthBtn.after(reqText);
 
     const items = [

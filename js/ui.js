@@ -39,9 +39,14 @@ function updateTexts() {
     if (btnCloseSlayer) {
         btnCloseSlayer.innerText = t.close;
     }
+
+    if(document.getElementById('resumeBtn')) document.getElementById('resumeBtn').innerText = t.resume;
+    if(document.getElementById('mainMenuBtn')) document.getElementById('mainMenuBtn').innerText = t.mainMenu;
+    if(document.getElementById('pauseTitle')) document.getElementById('pauseTitle').innerText = t.pauseTitle;
     
     updateSettingsButtons();
     updateScore();
+    if (typeof window.updateKillCounter === 'function') window.updateKillCounter();
     updateProgress();
 }
 
@@ -344,12 +349,12 @@ function showConfirmation(text, onConfirm) {
         }, 300);
     };
 
-    const yesBtn = createBtn('✅ Yes', 'linear-gradient(45deg, #00c853, #64dd17)', () => {
+    const yesBtn = createBtn(TRANSLATIONS[currentLanguage].yes, 'linear-gradient(45deg, #00c853, #64dd17)', () => {
         close();
         if (onConfirm) onConfirm();
     });
 
-    const noBtn = createBtn('❌ No', 'linear-gradient(45deg, #d50000, #ff1744)', () => {
+    const noBtn = createBtn(TRANSLATIONS[currentLanguage].no, 'linear-gradient(45deg, #d50000, #ff1744)', () => {
         close();
     });
 
@@ -409,6 +414,16 @@ function setupResponsiveUI() {
     const style = document.createElement('style');
     style.id = 'responsive-ui-styles';
     style.innerHTML = `
+        /* --- Global Reset & Mobile Fixes --- */
+        html, body {
+            width: 100%; height: 100%; margin: 0; padding: 0;
+            overflow: hidden; touch-action: none; /* Prevents scroll & zoom */
+            user-select: none; -webkit-user-select: none;
+            position: fixed; /* Prevents iOS scroll bounce */
+            background: #000;
+        }
+        canvas { display: block; }
+
         /* --- Shared Styles --- */
         #game-stats-container {
             position: fixed;
@@ -442,6 +457,24 @@ function setupResponsiveUI() {
             pointer-events: none;
         }
 
+        /* --- Overlays (Scrollable & Centered) --- */
+        #menu-overlay, #shop-overlay, #slayer-shop-overlay, #guide-overlay, #settings-overlay, #rebirth-overlay, #pet-overlay {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            display: flex; align-items: center; justify-content: center;
+            z-index: 2000;
+            padding: env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left);
+        }
+
+        /* Scrollable Content Areas */
+        #pet-items, #shop-items, #slayer-shop-items, #rebirth-items, #guide-items {
+            max-height: 60vh;
+            overflow-y: auto;
+            -webkit-overflow-scrolling: touch;
+            scrollbar-width: thin;
+            width: 100%;
+            padding-right: 5px;
+        }
+
         /* --- PC Layout (Sidebar) --- */
         @media (min-width: 769px) {
             #game-stats-container {
@@ -463,35 +496,29 @@ function setupResponsiveUI() {
         /* --- Mobile Layout (Top Bar & Fixes) --- */
         @media (max-width: 768px) {
             #game-stats-container {
-                top: 0; left: 0; width: 100%;
+                top: env(safe-area-inset-top, 0); 
+                left: 0; width: 100%;
                 display: flex; flex-wrap: wrap; justify-content: center; gap: 12px;
                 border-radius: 0; border: none; border-bottom: 1px solid rgba(255,255,255,0.1);
                 padding: 4px;
+                background: rgba(0,0,0,0.8);
             }
             .stat-item { font-size: 12px; margin-bottom: 0; }
             
             #evo-container {
-                bottom: 60px; left: 50%; transform: translateX(-50%);
+                bottom: calc(60px + env(safe-area-inset-bottom, 10px)); 
+                left: 50%; transform: translateX(-50%);
                 width: 90%; height: 16px;
             }
 
             /* Mobile Fixes */
             #minimapCanvas { display: none !important; }
             
-            /* Scrollable Overlays */
-            #pet-items, #shop-items, #slayer-shop-items, #rebirth-items, #guide-items {
-                max-height: 60vh;
-                overflow-y: auto;
-                -webkit-overflow-scrolling: touch;
-            }
-            .overlay-content {
-                max-height: 90vh;
-                display: flex; flex-direction: column;
-            }
-            
             /* Virtual Joystick Styles */
             #virtual-joystick-zone {
-                position: fixed; bottom: 30px; left: 30px; width: 120px; height: 120px;
+                position: fixed; 
+                bottom: calc(30px + env(safe-area-inset-bottom, 0px)); 
+                left: 30px; width: 120px; height: 120px;
                 background: rgba(255, 255, 255, 0.05); border: 2px solid rgba(255, 255, 255, 0.15);
                 border-radius: 50%; z-index: 9999; touch-action: none;
                 display: flex; align-items: center; justifyContent: center; backdrop-filter: blur(2px);
@@ -501,10 +528,18 @@ function setupResponsiveUI() {
                 border-radius: 50%; pointer-events: none;
             }
             #mobile-boost-btn {
-                position: fixed; bottom: 50px; right: 30px; width: 80px; height: 80px;
+                position: fixed; 
+                bottom: calc(50px + env(safe-area-inset-bottom, 0px)); 
+                right: 30px; width: 80px; height: 80px;
                 background: rgba(255, 50, 50, 0.4); border: 2px solid rgba(255, 50, 50, 0.6);
                 border-radius: 50%; color: white; font-weight: bold; display: flex;
                 align-items: center; justify-content: center; z-index: 9999; font-size: 24px;
+            }
+
+            /* Scale Menu Buttons */
+            button {
+                min-height: 44px; /* Touch target size */
+                font-size: 16px;
             }
         }
     `;

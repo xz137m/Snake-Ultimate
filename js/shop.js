@@ -99,7 +99,7 @@ function buyMaxUpgrade(id, baseCost) {
         updateScore();
         renderShopItems();
         playSound('eat');
-        showNotification(`✅ Purchased  Upgrades!`, 'success');
+        showNotification(TRANSLATIONS[currentLanguage].purchasedUpgrades.replace('{0}', n), 'success');
     }
 }
 
@@ -118,6 +118,6 @@ function buyUpgrade(id, cost) {
         updateScore();
         renderShopItems();
         playSound('eat');
-        showNotification(`✅ Upgrade Successful!`, 'success');
+        showNotification(TRANSLATIONS[currentLanguage].upgradeSuccess, 'success');
     }
 }

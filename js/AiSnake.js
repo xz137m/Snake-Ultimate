@@ -183,15 +183,12 @@ class AiSnake {
             // 3. ترتيب الحركات حسب القرب من "الهدف المحسوب"
             moves.sort((a, b) => {
                 // حساب الإحداثيات المستقبلية لكل حركة مع الالتفاف
-                let ax = head.x + a.x; if(ax < 0) ax = TILE_COUNT_X-1; else if(ax >= TILE_COUNT_X) ax = 0;
-                let ay = head.y + a.y; if(ay < 0) ay = TILE_COUNT_Y-1; else if(ay >= TILE_COUNT_Y) ay = 0;
-
-                let bx = head.x + b.x; if(bx < 0) bx = TILE_COUNT_X-1; else if(bx >= TILE_COUNT_X) bx = 0;
-                let by = head.y + b.y; if(by < 0) by = TILE_COUNT_Y-1; else if(by >= TILE_COUNT_Y) by = 0;
+                const getPos = (m) => ({ x: (head.x + m.x + TILE_COUNT_X) % TILE_COUNT_X, y: (head.y + m.y + TILE_COUNT_Y) % TILE_COUNT_Y });
+                const posA = getPos(a), posB = getPos(b);
 
                 // استخدام المسافة الملتفة
-                const distA = getWrappedDist(ax, ay, targetX, targetY);
-                const distB = getWrappedDist(bx, by, targetX, targetY);
+                const distA = getWrappedDist(posA.x, posA.y, targetX, targetY);
+                const distB = getWrappedDist(posB.x, posB.y, targetX, targetY);
 
                 // --- Pet Evasion Logic ---
                 // Penalize moves that get too close to active pets
@@ -200,9 +197,8 @@ class AiSnake {
                 if (typeof petInstances !== 'undefined') {
                     for (let p of petInstances) {
                         if (p.isDead) continue;
-                        // 150px ~ 7.5 grid units
-                        let dPetA = Math.hypot(ax - p.x, ay - p.y);
-                        let dPetB = Math.hypot(bx - p.x, by - p.y);
+                        let dPetA = Math.hypot(posA.x - p.x, posA.y - p.y);
+                        let dPetB = Math.hypot(posB.x - p.x, posB.y - p.y);
                         
                         if (dPetA < 7.5) penaltyA += (100 / (dPetA + 0.1));
                         if (dPetB < 7.5) penaltyB += (100 / (dPetB + 0.1));

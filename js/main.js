@@ -103,6 +103,15 @@ document.addEventListener('DOMContentLoaded', () => {
     initMobileControls();
     initBackgroundAnimation();
     
+    // Enforce Viewport Meta Tag for Mobile (Fixes Zoom & Scaling)
+    let meta = document.querySelector('meta[name="viewport"]');
+    if (!meta) {
+        meta = document.createElement('meta');
+        meta.name = "viewport";
+        document.head.appendChild(meta);
+    }
+    meta.content = "width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover";
+
     // Dynamic Scaling for Mobile
     function resizeGame() {
         if (canvas) {
@@ -111,6 +120,7 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
     window.addEventListener('resize', resizeGame);
+    window.addEventListener('orientationchange', () => setTimeout(resizeGame, 200)); // Delay for iOS rotation
     resizeGame();
 
     // تطبيق اللغة وتحديث النصوص (بما في ذلك أعلى نقاط)
