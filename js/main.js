@@ -1,4 +1,10 @@
 document.addEventListener('DOMContentLoaded', () => {
+    // Mobile Block: منع الجوالات وإظهار رسالة
+    if (/Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent)) {
+        document.body.innerHTML = '<div style="position:fixed;top:0;left:0;width:100%;height:100%;background:#0f172a;color:#fff;display:flex;flex-direction:column;justify-content:center;align-items:center;z-index:99999;text-align:center;font-family:\'Segoe UI\', sans-serif;"><h1>⛔</h1><h2 style="margin:10px 0;color:#ff3333;">اللعبة مخصصة لأجهزة الكمبيوتر فقط</h2><h3 style="color:#aaa;">PC Only</h3></div>';
+        return;
+    }
+
     // 1. ربط المتغيرات العامة (الموجودة في state.js) بعناصر HTML
     // لا نستخدم var هنا لكي نحدث المتغيرات العامة مباشرة
     canvas = document.getElementById('gameCanvas');
@@ -100,7 +106,6 @@ document.addEventListener('DOMContentLoaded', () => {
     if(document.getElementById('langArBtn')) document.getElementById('langArBtn').addEventListener('click', () => window.setLanguage('ar'));
 
     // 3. التهيئة الأولية
-    initMobileControls();
     initBackgroundAnimation();
     
     // Enforce Viewport Meta Tag for Mobile (Fixes Zoom & Scaling)
@@ -139,65 +144,6 @@ document.addEventListener('DOMContentLoaded', () => {
 });
 
 // --- وظائف الواجهة الخاصة (الخلفية والتحكم) ---
-
-function initMobileControls() {
-    if ('ontouchstart' in window || navigator.maxTouchPoints > 0) {
-        const controls = document.getElementById('mobile-controls');
-        if (controls) controls.style.display = 'block';
-
-        const joystickContainer = document.getElementById('joystick-container');
-        const joystickKnob = document.getElementById('joystick-knob');
-        const sprintBtn = document.getElementById('mobile-sprint-btn');
-        
-        let joystickActive = false;
-        let startX, startY;
-        const maxRadius = 40;
-
-        if(joystickContainer) {
-            joystickContainer.addEventListener('touchstart', (e) => {
-                e.preventDefault();
-                joystickActive = true;
-                const rect = joystickContainer.getBoundingClientRect();
-                startX = rect.left + rect.width / 2;
-                startY = rect.top + rect.height / 2;
-            }, { passive: false });
-
-            joystickContainer.addEventListener('touchmove', (e) => {
-                e.preventDefault();
-                if (!joystickActive) return;
-                const touch = e.touches[0];
-                let dx = touch.clientX - startX;
-                let dy = touch.clientY - startY;
-                const distance = Math.sqrt(dx*dx + dy*dy);
-                if (distance > maxRadius) {
-                    const ratio = maxRadius / distance;
-                    dx *= ratio;
-                    dy *= ratio;
-                }
-                if(joystickKnob) joystickKnob.style.transform = `translate(calc(-50% + ${dx}px), calc(-50% + ${dy}px))`;
-                
-                if (Math.abs(dx) > Math.abs(dy)) {
-                    if (dx > 10 && velocity.x !== -1) nextVelocity = { x: 1, y: 0 };
-                    else if (dx < -10 && velocity.x !== 1) nextVelocity = { x: -1, y: 0 };
-                } else {
-                    if (dy > 10 && velocity.y !== -1) nextVelocity = { x: 0, y: 1 };
-                    else if (dy < -10 && velocity.y !== 1) nextVelocity = { x: 0, y: -1 };
-                }
-            }, { passive: false });
-
-            joystickContainer.addEventListener('touchend', (e) => {
-                e.preventDefault();
-                joystickActive = false;
-                if(joystickKnob) joystickKnob.style.transform = `translate(-50%, -50%)`;
-            }, { passive: false });
-        }
-
-        if(sprintBtn) {
-            sprintBtn.addEventListener('touchstart', (e) => { e.preventDefault(); isSprinting = true; }, { passive: false });
-            sprintBtn.addEventListener('touchend', (e) => { e.preventDefault(); isSprinting = false; }, { passive: false });
-        }
-    }
-}
 
 function initBackgroundAnimation() {
     const canvas = document.getElementById('bgCanvas');

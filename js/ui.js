@@ -213,63 +213,6 @@ function setupResponsiveUI() {
             w.innerHTML = `<span class="stat-icon">${s.i}</span>`; w.appendChild(el);
         });
     }
-
-    if ((/Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent) || window.innerWidth < 800) && !$('mobile-controls-container')) injectMobileControls();
-
-    // Auto-Scaling Logic for Mobile/Responsive View
-    const autoScaleGame = () => {
-        const layout = document.querySelector('.main-layout');
-        if (!layout) return;
-
-        // Design resolution (approximate max width/height of game content)
-        const designWidth = 950; 
-        const designHeight = 900;
-
-        const winW = window.innerWidth;
-        const winH = window.innerHeight;
-
-        // Calculate scale to fit screen (contain)
-        const scale = Math.min(winW / designWidth, winH / designHeight, 1);
-        
-        layout.style.transform = `scale(${scale})`;
-    };
-    window.addEventListener('resize', autoScaleGame);
-    window.addEventListener('orientationchange', () => setTimeout(autoScaleGame, 200));
-    autoScaleGame(); // Initial call
-}
-
-function injectMobileControls() {
-    const c = mkDiv({ position: 'fixed', top: '0', left: '0', width: '100%', height: '100%', zIndex: '9999', pointerEvents: 'none' }, document.body);
-    c.id = 'mobile-controls-container';
-    const zone = mkDiv({ position: 'absolute', top: '0', left: '0', width: '50%', height: '100%', pointerEvents: 'auto', touchAction: 'none' }, c);
-    
-    const base = mkDiv({ position: 'absolute', width: '100px', height: '100px', borderRadius: '50%', background: 'rgba(255,255,255,0.1)', border: '2px solid rgba(255,255,255,0.2)', display: 'none', transform: 'translate(-50%,-50%)', pointerEvents: 'none' }, c);
-    base.id = 'virtual-joystick-zone';
-    const knob = mkDiv({ position: 'absolute', width: '50px', height: '50px', borderRadius: '50%', background: 'rgba(0,255,255,0.5)', boxShadow: '0 0 15px rgba(0,255,255,0.4)', display: 'none', transform: 'translate(-50%,-50%)', pointerEvents: 'none' }, c);
-    knob.id = 'virtual-joystick-knob';
-    
-    const sprint = mkDiv({ position: 'absolute', bottom: '60px', right: '40px', width: '90px', height: '90px', background: 'rgba(255,50,50,0.3)', border: '3px solid rgba(255,50,50,0.5)', borderRadius: '50%', color: 'white', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '32px', pointerEvents: 'auto', touchAction: 'none', backdropFilter: 'blur(4px)', userSelect: 'none' }, c, '⚡');
-    sprint.id = 'mobile-boost-btn';
-
-    let jId = null, startX = 0, startY = 0;
-    zone.addEventListener('touchstart', e => { e.preventDefault(); const t = e.changedTouches[0]; jId = t.identifier; startX = t.clientX; startY = t.clientY; setStyle(base, { display: 'block', left: startX+'px', top: startY+'px' }); setStyle(knob, { display: 'block', left: startX+'px', top: startY+'px', transform: 'translate(-50%,-50%)' }); }, {passive:false});
-    zone.addEventListener('touchmove', e => {
-        e.preventDefault();
-        const t = Array.from(e.changedTouches).find(x => x.identifier === jId);
-        if (!t) return;
-        let dx = t.clientX - startX, dy = t.clientY - startY, dist = Math.sqrt(dx*dx+dy*dy);
-        if (dist > 40) { const r = 40/dist; dx *= r; dy *= r; }
-        knob.style.transform = `translate(calc(-50% + ${dx}px), calc(-50% + ${dy}px))`;
-        if (dist > 10) {
-            if (Math.abs(dx) > Math.abs(dy)) nextVelocity = { x: dx > 0 ? 1 : -1, y: 0 };
-            else nextVelocity = { x: 0, y: dy > 0 ? 1 : -1 };
-        }
-    }, {passive:false});
-    const end = e => { if (Array.from(e.changedTouches).some(x => x.identifier === jId)) { jId = null; base.style.display = 'none'; knob.style.display = 'none'; } };
-    zone.addEventListener('touchend', end); zone.addEventListener('touchcancel', end);
-
-    sprint.addEventListener('touchstart', e => { e.preventDefault(); isSprinting = true; setStyle(sprint, { background: 'rgba(255,50,50,0.6)', transform: 'scale(0.9)' }); }, {passive:false});
-    sprint.addEventListener('touchend', e => { e.preventDefault(); isSprinting = false; setStyle(sprint, { background: 'rgba(255,50,50,0.3)', transform: 'scale(1)' }); }, {passive:false});
 }
 
 // Exports

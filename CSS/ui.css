@@ -124,36 +124,10 @@ button:active { transform: translateY(1px); }
 #progressFill { height: 100%; width: 0%; background: linear-gradient(90deg, #0066ff, #00ff88); transition: width .3s ease-out; box-shadow: 0 0 10px #00ff8880; }
 #progressText { color: #ccc; font: bold 12px sans-serif; }
 
-/* Mobile Controls */
-#mobile-controls { position: fixed; inset: 0; pointer-events: none; z-index: 2000; }
-
-#joystick-container {
-    position: absolute; bottom: 8vmin; left: 8vmin; width: 20vmin; height: 20vmin;
-    background: #ffffff0d; border: 2px solid #ffffff33; border-radius: 50%;
-    pointer-events: auto; backdrop-filter: blur(2px); z-index: 2001;
-}
-
-#joystick-knob {
-    position: absolute; top: 50%; left: 50%; width: 40%; height: 40%;
-    background: radial-gradient(circle at 30% 30%, #00ff88, #008f4c); border-radius: 50%;
-    transform: translate(-50%, -50%); box-shadow: 0 5px 15px #00ff8866; transition: transform .05s;
-}
-
-#mobile-sprint-btn {
-    position: absolute; bottom: 10vmin; right: 8vmin; width: 15vmin; height: 15vmin;
-    background: radial-gradient(circle at 30% 30%, #ff3333, #b71c1c); border: 2px solid #ff646480;
-    border-radius: 50%; color: #fff; font-size: 5vmin; display: flex; justify-content: center;
-    align-items: center; pointer-events: auto; box-shadow: 0 5px 15px #ff000066; padding: 0; z-index: 2001;
-}
-
-#mobile-sprint-btn:active { transform: scale(0.9); filter: brightness(0.8); }
-
 @media (max-width: 768px) {
     .shop-grid { grid-template-columns: repeat(2, 1fr); width: 95%; padding: 5px; }
     .settings-card { min-width: 90%; padding: 20px; width: 90%; }
     .settings-card h1 { font-size: 32px; }
-    #joystick-container { bottom: 5vmin; left: 5vmin; width: 25vmin; height: 25vmin; }
-    #mobile-sprint-btn { bottom: 8vmin; right: 5vmin; width: 18vmin; height: 18vmin; font-size: 6vmin; }
 }
 @media (max-width: 480px) { .shop-grid { grid-template-columns: 1fr; } }
 

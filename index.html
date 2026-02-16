@@ -8,72 +8,23 @@
     <meta property="og:description" content="Eat, Grow, Upgrade! The ultimate snake experience with levels and shop system.">
     <title>Snake Ultimate</title>
     <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🐍</text></svg>">
-    <link rel="stylesheet" href="style.css">
     <link rel="stylesheet" href="CSS/base.css">
-    
-    <style>
-        .hud-widget {
-            position: fixed;
-            z-index: 1000;
-            background: rgba(15, 20, 35, 0.85);
-            border: 1px solid rgba(255, 255, 255, 0.1);
-            border-left: 3px solid;
-            backdrop-filter: blur(8px);
-            padding: 8px 16px;
-            border-radius: 4px;
-            font-family: 'Segoe UI', monospace;
-            font-weight: bold;
-            font-size: 16px;
-            box-shadow: 0 4px 15px rgba(0,0,0,0.5);
-            display: flex;
-            align-items: center;
-            gap: 8px;
-            transition: transform 0.2s;
-        }
-        .hud-widget:hover { transform: scale(1.02); }
-
-        .heart-block {
-            width: 24px;
-            height: 14px;
-            border: 1px solid #555;
-            transform: skewX(-25deg); /* ميلان ليعطي طابع السرعة */
-            margin-right: 4px;
-            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-        }
-
-        .radar-sweep {
-            position: absolute;
-            top: 50%; left: 50%;
-            width: 150%; height: 150%;
-            background: conic-gradient(from 0deg, transparent 0deg, rgba(0, 255, 255, 0.1) 60deg, transparent 60deg);
-            transform-origin: top left;
-            animation: radar-spin 4s linear infinite;
-            pointer-events: none;
-        }
-        
-        /* CSS Overwrite: Force Pet Menu Behavior */
-        #pet-overlay {
-            z-index: 9999 !important;
-            pointer-events: auto !important;
-        }
-        
-        @keyframes radar-spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
-    </style>
-
-    <div id="fpsCounter" class="hud-widget" style="top: 15px; left: 15px; color: #00ff00; border-left-color: #00ff00;">FPS: 60</div>
-    <div id="killCounterDisplay" class="hud-widget" style="top: 15px; right: 15px; color: #ff3333; border-left-color: #ff3333;">💀 Kills: 0</div>
-    <div id="bossTimerDisplay" class="hud-widget" style="top: 65px; right: 15px; color: #e040fb; border-left-color: #e040fb;">👹 Boss: 03:00</div>
-    
+    <link rel="stylesheet" href="CSS/game.css">
+    <link rel="stylesheet" href="CSS/ui.css">
 </head>
 <body>
-    <canvas id="bgCanvas" style="position: fixed; top: 0; left: 0; width: 100%; height: 100%; z-index: -1;"></canvas>
+    <canvas id="bgCanvas"></canvas>
     
-    <div style="position: fixed; bottom: 20px; right: 20px; z-index: 1000; width: 200px; height: 200px; border-radius: 8px; border: 2px solid rgba(0, 255, 255, 0.5); box-shadow: 0 0 20px rgba(0, 255, 255, 0.2); background: #000; overflow: hidden;">
-        <canvas id="minimapCanvas" width="200" height="200" style="position: absolute; top: 0; left: 0;"></canvas>
+    <div id="fpsCounter" class="hud-widget">FPS: 60</div>
+    <div id="killCounterDisplay" class="hud-widget">💀 Kills: 0</div>
+    <div id="bossTimerDisplay" class="hud-widget">👹 Boss: 03:00</div>
+
+    <div id="minimap-container">
+        <canvas id="minimapCanvas" width="200" height="200"></canvas>
         <div class="radar-sweep"></div>
     </div>
 
-    <div id="heartsContainer" style="position: fixed; bottom: 25px; right: 240px; z-index: 1000; display: flex; gap: 2px; filter: drop-shadow(0 0 5px rgba(255, 50, 50, 0.5));"></div>
+    <div id="heartsContainer"></div>
     
     <div class="main-layout">
         <div id="game-container">
@@ -132,7 +83,7 @@
             <button id="closeRebirthBtn" style="margin-top: 20px; background: #ff3366;">❌ Close</button>
         </div>
 
-        <div id="pet-overlay" class="hidden" style="position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(15, 20, 30, 0.98); display: none; flex-direction: column; align-items: center; justify-content: center; z-index: 9999 !important; pointer-events: auto !important;">
+        <div id="pet-overlay" class="hidden">
             <h1 style="color: #ff8000;">🐾 Pet Companion</h1>
             <p style="color: #ff3333; font-size: 20px; margin-bottom: 10px;"><span id="lblPetSouls">Souls:</span> <span id="petSoulsDisplay">0</span> 👻</p>
             <button id="btnPullGacha" class="btn-max" style="margin-bottom: 20px; pointer-events: auto;" onclick="window.pullPetGacha()">Summon Pet</button>
@@ -146,7 +97,7 @@
             <button id="closeGuideBtn" style="margin-top: 20px; background: #ff3366;">❌ Close</button>
         </div>
 
-        <div id="pause-overlay" class="hidden" style="position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0, 0, 0, 0.7); display: none; flex-direction: column; align-items: center; justify-content: center; z-index: 2000; backdrop-filter: blur(5px);">
+        <div id="pause-overlay" class="hidden">
             <h1 style="color: white; font-size: 40px; margin-bottom: 30px; text-shadow: 0 0 10px rgba(255,255,255,0.5);">PAUSED</h1>
             <button id="resumeBtn" class="btn-menu-item" style="background: linear-gradient(45deg, #00c853, #64dd17); width: 200px; margin-bottom: 15px;">▶ Resume</button>
             <button id="mainMenuBtn" class="btn-menu-item" style="background: linear-gradient(45deg, #d50000, #ff1744); width: 200px;">🏠 Main Menu</button>
@@ -177,13 +128,6 @@
         </div>
         </div>
 
-        <div id="mobile-controls" style="display: none;">
-            <div id="joystick-container">
-                <div id="joystick-knob"></div>
-            </div>
-            <button id="mobile-sprint-btn">⚡</button>
-        </div>
-
         <div class="evolution-bar">
             <div id="progressFill" class="evo-fill"></div>
             <div class="evo-text">
@@ -208,7 +152,7 @@
  <script src="js/input.js"></script>
  <script src="js/renderer.js"></script>
  <script src="js/game.js"></script>
- <script type="module" src="js/main.js"></script>
+ <script src="js/main.js"></script>
  
 </body>
 </html> 
