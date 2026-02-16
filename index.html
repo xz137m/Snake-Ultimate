@@ -76,46 +76,6 @@
     <div id="heartsContainer" style="position: fixed; bottom: 25px; right: 240px; z-index: 1000; display: flex; gap: 2px; filter: drop-shadow(0 0 5px rgba(255, 50, 50, 0.5));"></div>
     
     <div class="main-layout">
-        <div class="stats-bar" style="background: linear-gradient(180deg, rgba(30, 40, 60, 0.9), rgba(20, 25, 40, 0.9)); border: 1px solid rgba(255, 255, 255, 0.1); border-bottom: 2px solid rgba(0, 255, 255, 0.3); border-radius: 0 0 20px 20px; padding: 15px 30px; margin-bottom: 20px; backdrop-filter: blur(12px); box-shadow: 0 10px 40px rgba(0,0,0,0.6); width: 100%; max-width: 900px;">
-            
-            <div style="display: flex; flex-direction: column; gap: 20px; flex: 1;">
-                <div class="stat-row">
-                    <span id="lblScore" style="color: #ddd;">Score:</span> 
-                    <span id="score" class="stat-value" style="color: white;">0</span>
-                </div>
-                <div class="stat-row">
-                    <span id="lblHighScore" style="color: #aaa;">High Score:</span> 
-                    <span id="highScore" class="stat-value" style="color: #ccc;">0</span>
-                </div>
-            </div>
-
-            <div style="flex: 1.5; display: flex; flex-direction: column; justify-content: center; align-items: center; padding: 0 20px;">
-                <div style="display: flex; justify-content: space-between; width: 100%; margin-bottom: 5px;">
-                    <span id="lblLevel" style="color: #00ffff; font-weight: bold;">Level:</span>
-                    <span id="levelDisplay" style="color: #00ffff; font-weight: bold; font-size: 1.2em;">1</span>
-                </div>
-                <div class="xp-track">
-                    <div id="xpFill" style="height: 100%; background: linear-gradient(90deg, #00bcd4, #00ffff); width: 0%; transition: width 0.3s;"></div>
-                </div>
-                <span id="xpText" style="font-size: 0.8em; color: #888; margin-top: 4px;">0 / 100</span>
-            </div>
-
-            <div style="display: flex; flex-direction: column; gap: 20px; flex: 1;">
-                <div class="stat-row">
-                    <span id="lblGold" style="color: #ffd700;">Gold:</span> 
-                    <span id="coinsDisplay" class="stat-value" style="color: #ffd700;">0</span>
-                </div>
-                <div class="stat-row">
-                    <span id="lblRP" style="color: #e040fb;">RP:</span> 
-                    <span id="rpDisplay" class="stat-value" style="color: #e040fb;">0</span>
-                </div>
-                <div class="stat-row">
-                    <span id="lblSouls" style="color: #ff3333;">Souls:</span> 
-                    <span id="soulsDisplay" class="stat-value" style="color: #ff3333;">0</span>
-                </div>
-            </div>
-        </div>
-
         <div id="game-container">
         <canvas id="gameCanvas" width="800" height="600"></canvas>
         
@@ -224,12 +184,12 @@
             <button id="mobile-sprint-btn">⚡</button>
         </div>
 
-        <div style="width: 100%; max-width: 800px; margin-top: 15px; display: flex; align-items: center; gap: 15px; box-sizing: border-box; background: rgba(10, 15, 25, 0.8); padding: 12px 25px; border-radius: 50px; border: 1px solid rgba(255, 152, 0, 0.3); box-shadow: 0 5px 20px rgba(0,0,0,0.4);">
-            <span id="lblProgress" style="white-space: nowrap; font-weight: bold; color: #ff9800; font-family: 'Segoe UI', sans-serif; letter-spacing: 1px;">EVOLUTION</span>
-            <div class="xp-track" style="margin: 0; flex-grow: 1; background: rgba(0, 0, 0, 0.5); height: 12px; border-radius: 6px; overflow: hidden; border: 1px solid rgba(255, 255, 255, 0.1);">
-                <div id="progressFill" style="height: 100%; background: linear-gradient(90deg, #ff9800, #ff3d00); width: 0%; transition: width 0.3s; box-shadow: 0 0 10px #ff9800;"></div>
+        <div class="evolution-bar">
+            <div id="progressFill" class="evo-fill"></div>
+            <div class="evo-text">
+                <span id="lblProgress">EVOLUTION</span>
+                <span id="progressText">1/50</span>
             </div>
-            <span id="progressText" style="white-space: nowrap; font-family: monospace; color: #ccc;">1/50</span>
         </div>
     </div>
  <script src="js/constants.js"></script>

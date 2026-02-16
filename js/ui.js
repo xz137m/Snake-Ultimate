@@ -27,7 +27,7 @@ function updateTexts() {
         settingsBtn: t.settings, resetBtn: t.reset, rebirthMenuBtn: t.rebirth, shopTitle: t.shopTitle,
         lblBalance: t.balance, closeShopBtn: t.close, rebirthTitle: t.rebirthTitle, closeRebirthBtn: t.close,
         guideTitle: t.guideTitle, closeGuideBtn: t.close, settingsTitle: t.settingsTitle, closeSettingsBtn: t.close,
-        lblAudioGame: t.audioGame, lblGraphics: t.graphics, lblProgress: t.nextEvo, closeSlayerShopBtn: t.close,
+        lblAudioGame: t.audioGame, lblGraphics: t.graphics, closeSlayerShopBtn: t.close,
         resumeBtn: t.resume, mainMenuBtn: t.mainMenu, pauseTitle: t.pauseTitle
     };
     for (const [id, txt] of Object.entries(map)) setTxt(id, txt);
@@ -75,6 +75,10 @@ function updateProgress() {
     } else {
         if(fill) fill.style.width = `${Math.min((snake.length / max) * 100, 100)}%`;
         if(txt) txt.innerText = `${snake.length} / ${max}`;
+        
+        // تحديث النص ديناميكياً مع الرقم الجديد
+        const t = TRANSLATIONS[currentLanguage];
+        if (t && t.nextEvo) setTxt('lblProgress', t.nextEvo.replace('{0}', max));
     }
 }
 
@@ -195,20 +199,19 @@ function setupResponsiveUI() {
     if (!statsC) {
         statsC = mkDiv(null, document.body); statsC.id = 'game-stats-container';
         [{id:'score',i:'🏆'},{id:'levelDisplay',i:'⭐'},{id:'highScore',i:'👑'},{id:'coinsDisplay',i:'💰'},{id:'rpDisplay',i:'🌀'},{id:'soulsDisplay',i:'👻'}].forEach(s => {
-            const el = $(s.id);
-            if (el) {
-                const w = mkDiv(null, statsC); w.className = 'stat-item';
-                w.innerHTML = `<span class="stat-icon">${s.i}</span>`; w.appendChild(el);
+            let el = $(s.id);
+            // Create element if missing (since we removed stats-bar from HTML)
+            if (!el) {
+                el = document.createElement('span');
+                el.id = s.id;
+                el.className = 'stat-value';
+                el.innerText = '0';
+                uiCache[s.id] = el;
             }
+            // Ensure it's in the stats container
+            const w = mkDiv(null, statsC); w.className = 'stat-item';
+            w.innerHTML = `<span class="stat-icon">${s.i}</span>`; w.appendChild(el);
         });
-    }
-
-    let evoC = $('evo-container');
-    if (!evoC) {
-        evoC = mkDiv(null, document.body); evoC.id = 'evo-container';
-        const fill = $('progressFill'), text = $('progressText');
-        if (fill) { fill.style.height = '100%'; evoC.appendChild(fill); }
-        if (text) { setStyle(text, { position: 'absolute', width: '100%', textAlign: 'center', top: '50%', transform: 'translateY(-50%)', color: '#fff', fontSize: '12px', fontWeight: 'bold', textShadow: '1px 1px 2px black' }); evoC.appendChild(text); }
     }
 
     if ((/Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent) || window.innerWidth < 800) && !$('mobile-controls-container')) injectMobileControls();
@@ -256,7 +259,7 @@ function injectMobileControls() {
         if (!t) return;
         let dx = t.clientX - startX, dy = t.clientY - startY, dist = Math.sqrt(dx*dx+dy*dy);
         if (dist > 40) { const r = 40/dist; dx *= r; dy *= r; }
-        knob.style.transform = `translate(calc(-50% + px), calc(-50% + px))`;
+        knob.style.transform = `translate(calc(-50% + ${dx}px), calc(-50% + ${dy}px))`;
         if (dist > 10) {
             if (Math.abs(dx) > Math.abs(dy)) nextVelocity = { x: dx > 0 ? 1 : -1, y: 0 };
             else nextVelocity = { x: 0, y: dy > 0 ? 1 : -1 };
