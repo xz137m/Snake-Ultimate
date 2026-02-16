@@ -15,7 +15,7 @@
 }
 
 /* Overlays */
-#menu-overlay, #shop-overlay, #guide-overlay, #settings-overlay, #rebirth-overlay, #slayer-shop-overlay {
+#menu-overlay, #shop-overlay, #guide-overlay, #settings-overlay, #rebirth-overlay, #slayer-shop-overlay, #pet-overlay {
     position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center;
     z-index: 20; pointer-events: auto; transition: opacity 0.3s;
 }

@@ -29,7 +29,29 @@ const handleKeyPress = (e) => {
             if (velocity.x !== -1) nextVelocity = { x: 1, y: 0 };
             break;
         case 'Space':
-            if (!isGameOver && typeof window.togglePause === 'function') window.togglePause();
+            // Check if any overlay is open (except HUD)
+            const overlays = ['shop-overlay', 'slayer-shop-overlay', 'rebirth-overlay', 'pet-overlay', 'guide-overlay', 'settings-overlay'];
+            const isMenuOpen = overlays.some(id => {
+                const el = document.getElementById(id);
+                return el && !el.classList.contains('hidden') && el.style.display !== 'none';
+            });
+
+            if (!isMenuOpen && !isGameOver && typeof window.togglePause === 'function') window.togglePause();
+            break;
+        case 'Escape':
+            // زر الطوارئ: إغلاق أي قائمة مفتوحة
+            const overlaysEsc = ['shop-overlay', 'slayer-shop-overlay', 'rebirth-overlay', 'pet-overlay', 'guide-overlay', 'settings-overlay'];
+            const openMenu = overlaysEsc.find(id => {
+                const el = document.getElementById(id);
+                return el && !el.classList.contains('hidden') && el.style.display !== 'none';
+            });
+            
+            if (openMenu) {
+                if (openMenu === 'pet-overlay' && typeof window.closePetMenu === 'function') window.closePetMenu();
+                else if (typeof window.hidePanel === 'function') window.hidePanel(openMenu);
+            } else if (!isGameOver && typeof window.togglePause === 'function') {
+                window.togglePause();
+            }
             break;
         case 'ShiftLeft':
         case 'ShiftRight':
