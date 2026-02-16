@@ -212,6 +212,27 @@ function setupResponsiveUI() {
     }
 
     if ((/Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent) || window.innerWidth < 800) && !$('mobile-controls-container')) injectMobileControls();
+
+    // Auto-Scaling Logic for Mobile/Responsive View
+    const autoScaleGame = () => {
+        const layout = document.querySelector('.main-layout');
+        if (!layout) return;
+
+        // Design resolution (approximate max width/height of game content)
+        const designWidth = 950; 
+        const designHeight = 900;
+
+        const winW = window.innerWidth;
+        const winH = window.innerHeight;
+
+        // Calculate scale to fit screen (contain)
+        const scale = Math.min(winW / designWidth, winH / designHeight, 1);
+        
+        layout.style.transform = `scale(${scale})`;
+    };
+    window.addEventListener('resize', autoScaleGame);
+    window.addEventListener('orientationchange', () => setTimeout(autoScaleGame, 200));
+    autoScaleGame(); // Initial call
 }
 
 function injectMobileControls() {
